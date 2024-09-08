@@ -3,53 +3,94 @@ using System;
 
 public partial class PCG : TileMap {
 
-  private FastNoiseLite moisture = new FastNoiseLite();
-  private FastNoiseLite temperature = new FastNoiseLite();
-  private FastNoiseLite altitude = new FastNoiseLite();
+  private FastNoiseLite noise = new FastNoiseLite();
 
-  private int chunkWidth = 50;  // Width of each chunk
-  private int chunkHeight = 50; // Height of each chunk
-  private int gridSize = 10;
+  private int chunkWidth = 200;
+  private int chunkHeight = 200;
+  private int[,] mapGrid;  // Stores the cave map (1: floor, 0: wall)
+
+  private float fillProbability = 0.45f;  // Initial fill rate for walls
+  private int smoothingIterations = 5;    // How many times to smooth the map
 
   public override void _Ready() {
-    // Initialize noise parameters
-    moisture.Seed = (int)GD.Randi();
-    temperature.Seed = (int)GD.Randi();
-    altitude.Seed = (int)GD.Randi();
-    altitude.Frequency = 0.005f;
-
-    // Generate the world around the center (0, 0) with grid size 1x1 (just one chunk)
-    GenerateWorld(Vector2.Zero, gridSize, gridSize);  
+    // Initialize the noise parameters (if needed for any random use)
+    noise.Seed = (int)GD.Randi();
+    GenerateCave();
   }
 
-  // Generates a world by generating multiple chunks based on grid size
-  private void GenerateWorld(Vector2 center, int gridX, int gridY) {
-    // Loop over the grid dimensions (gridX, gridY)
-    for (int x = -gridX / 2; x < gridX / 2; x++) {
-      for (int y = -gridY / 2; y < gridY / 2; y++) {
-        // Calculate the chunk position based on the center and chunk size
-        Vector2 chunkPos = new Vector2(center.X + x * chunkWidth, center.Y + y * chunkHeight);
-        GenerateChunk(chunkPos);  // Generate each chunk at the calculated position
+  private void GenerateCave() {
+    // Initialize the map with random walls
+    mapGrid = new int[chunkWidth, chunkHeight];
+    InitializeMap();
+
+    // Apply smoothing iterations to make the cave more cohesive
+    for (int i = 0; i < smoothingIterations; i++) {
+      SmoothMap();
+    }
+
+    // Finally, render the cave by placing tiles
+    RenderCave();
+  }
+
+  private void InitializeMap() {
+    Random rand = new Random();
+
+    for (int x = 0; x < chunkWidth; x++) {
+      for (int y = 0; y < chunkHeight; y++) {
+        // Fill the map randomly with walls (1) and floors (0)
+        if (rand.NextDouble() < fillProbability || x == 0 || y == 0 || x == chunkWidth - 1 || y == chunkHeight - 1) {
+          mapGrid[x, y] = 0; // Wall
+        } else {
+          mapGrid[x, y] = 1; // Floor
+        }
       }
     }
   }
 
-  // Generates a single chunk at the given position
-  private void GenerateChunk(Vector2 position) {
-    Vector2I tilePos = LocalToMap(position);  // Convert world position to map position
+  private void SmoothMap() {
+    int[,] newMap = (int[,])mapGrid.Clone();
 
+    for (int x = 1; x < chunkWidth - 1; x++) {
+      for (int y = 1; y < chunkHeight - 1; y++) {
+        int neighborWallCount = GetNeighborWallCount(x, y);
+
+        if (neighborWallCount > 4) {
+          newMap[x, y] = 0; // More walls around, turn this into a wall
+        } else if (neighborWallCount < 4) {
+          newMap[x, y] = 1; // Fewer walls around, make this a floor
+        }
+      }
+    }
+
+    mapGrid = newMap; // Update the map with the smoothed version
+  }
+
+  private int GetNeighborWallCount(int gridX, int gridY) {
+    int wallCount = 0;
+
+    for (int x = gridX - 1; x <= gridX + 1; x++) {
+      for (int y = gridY - 1; y <= gridY + 1; y++) {
+        if (x >= 0 && x < chunkWidth && y >= 0 && y < chunkHeight) {
+          if (x != gridX || y != gridY) {
+            wallCount += mapGrid[x, y] == 0 ? 1 : 0; // Count walls (0)
+          }
+        } else {
+          wallCount++; // Treat out-of-bounds as walls
+        }
+      }
+    }
+
+    return wallCount;
+  }
+
+  private void RenderCave() {
     for (int x = 0; x < chunkWidth; x++) {
       for (int y = 0; y < chunkHeight; y++) {
-        // Get noise values for moisture, temperature, and altitude
-        float moist = moisture.GetNoise2D(tilePos.X + x, tilePos.Y + y) * 10;
-        float temp = temperature.GetNoise2D(tilePos.X + x, tilePos.Y + y) * 10;
-        float alt = altitude.GetNoise2D(tilePos.X + x, tilePos.Y + y) * 10;
-
-        // If altitude is low, set a specific tile
-        if (alt < 2) {
-          SetCell(0, new Vector2I(tilePos.X + x, tilePos.Y + y), 0, new Vector2I(3, (int)Mathf.Round((temp + 10) / 5)));
-        } else {
-          SetCell(0, new Vector2I(tilePos.X + x, tilePos.Y + y), 0, new Vector2I((int)(int)Mathf.Round((moist + 10) / 5), (int)Mathf.Round((temp + 10) / 5)));
+        if (mapGrid[x, y] == 0)  // Wall is 0
+        {
+          SetCell(0, new Vector2I(x, y), 0, new Vector2I(2, 0));  // wall tile here is (2, 0) in the tile map atlas
+        } else { // Floor is 1
+          SetCell(0, new Vector2I(x, y), 0, new Vector2I(0, 3));  // floor tile here is (0, 3) in the tile map atlas
         }
       }
     }
