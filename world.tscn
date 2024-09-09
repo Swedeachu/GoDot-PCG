@@ -1,10 +1,11 @@
 [gd_scene load_steps=3 format=3 uid="uid://c0p1tr10bdyvn"]
 
 [ext_resource type="Script" path="res://World.cs" id="1_iesjk"]
-[ext_resource type="Script" path="res://DebugCamera.cs" id="2_1nddp"]
+[ext_resource type="PackedScene" uid="uid://bhbp0csn635tg" path="res://player.tscn" id="2_oxj15"]
 
 [node name="World" type="Node2D"]
 script = ExtResource("1_iesjk")
 
-[node name="DebugCamera" type="Camera2D" parent="."]
-script = ExtResource("2_1nddp")
+[node name="Player" parent="." instance=ExtResource("2_oxj15")]
+z_index = 1
+position = Vector2(400, 400)
