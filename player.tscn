@@ -7,6 +7,7 @@
 [sub_resource type="CircleShape2D" id="CircleShape2D_wyeji"]
 
 [node name="Player" type="CharacterBody2D"]
+collision_layer = 2
 script = ExtResource("1_75i17")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

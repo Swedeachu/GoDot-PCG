@@ -1,0 +1,28 @@
+[gd_scene load_steps=6 format=3 uid="uid://dud51vh8svrss"]
+
+[ext_resource type="Script" path="res://Bullet2.cs" id="1_sa2bd"]
+[ext_resource type="Texture2D" uid="uid://dby77hcmg75l6" path="res://icon.svg" id="2_dc6uv"]
+[ext_resource type="Script" path="res://DeathTimer.cs" id="3_u7sg8"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_b81hk"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_25hxb"]
+
+[node name="Bullet2" type="RigidBody2D"]
+scale = Vector2(0.25, 0.25)
+collision_layer = 4
+script = ExtResource("1_sa2bd")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+scale = Vector2(0.511367, 0.430601)
+shape = SubResource("CircleShape2D_b81hk")
+
+[node name="MeshInstance2D" type="MeshInstance2D" parent="."]
+scale = Vector2(10, 10)
+mesh = SubResource("SphereMesh_25hxb")
+texture = ExtResource("2_dc6uv")
+
+[node name="DeathTimer" type="Timer" parent="."]
+wait_time = 10.0
+autostart = true
+script = ExtResource("3_u7sg8")
