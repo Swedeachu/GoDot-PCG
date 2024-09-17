@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 
 public partial class PCG : TileMap {
+
   private FastNoiseLite noise = new FastNoiseLite();
   private FastNoiseLite temperatureNoise = new FastNoiseLite();
 
@@ -148,7 +149,6 @@ public partial class PCG : TileMap {
     Array shapes = Enum.GetValues(typeof(RoomShape));
     return (RoomShape)shapes.GetValue(rand.Next(shapes.Length));
   }
-
 
   private void CarveRoom(Room room) {
     switch (room.Shape) {
@@ -329,8 +329,8 @@ public partial class PCG : TileMap {
 
         switch (corridorStyle) {
           case 0:
-          CreateStraightCorridor(roomA, roomB);
-          break;
+          //CreateStraightCorridor(roomA, roomB);
+          //break;
           case 1:
           CreateSnakingCorridor(roomA, roomB);
           break;
@@ -345,7 +345,8 @@ public partial class PCG : TileMap {
     for (int i = 0; i < branches.Count - 1; i++) {
       Room roomA = branches[i][rand.Next(branches[i].Count)];
       Room roomB = branches[i + 1][rand.Next(branches[i + 1].Count)];
-      CreateStraightCorridor(roomA, roomB);
+      // CreateStraightCorridor(roomA, roomB);
+      CreateSnakingCorridor(roomA, roomB);
     }
   }
 
@@ -545,6 +546,7 @@ public enum RoomShape {
 }
 
 public class Room {
+
   public int X, Y, Width, Height;
   public int Style; // 0: Rounded corners, 1: Rough edges, 2: Interior columns
   public RoomShape Shape; // New property for room shape
@@ -572,6 +574,5 @@ public class Room {
     return (X <= other.X + other.Width && X + Width >= other.X &&
             Y <= other.Y + other.Height && Y + Height >= other.Y);
   }
+
 }
-
-
