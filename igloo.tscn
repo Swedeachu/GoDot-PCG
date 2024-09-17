@@ -1,0 +1,19 @@
+[gd_scene load_steps=4 format=3 uid="uid://c8s7k23okn4e3"]
+
+[ext_resource type="Script" path="res://KillOnR.cs" id="1_8f8d7"]
+[ext_resource type="Texture2D" uid="uid://ds6110mc8cef3" path="res://igloo.png" id="1_h0qb6"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_w6vnd"]
+size = Vector2(19.0012, 23.0874)
+
+[node name="igloo" type="StaticBody2D"]
+scale = Vector2(0.1, 0.1)
+script = ExtResource("1_8f8d7")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1_h0qb6")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(-9, 11.5)
+scale = Vector2(32.84, 21.96)
+shape = SubResource("RectangleShape2D_w6vnd")

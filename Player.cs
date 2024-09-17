@@ -20,6 +20,21 @@ public partial class Player : CharacterBody2D {
     if (Input.IsActionJustPressed("shoot")) {
       Shoot();
     }
+
+    if (Input.IsActionJustPressed("right_click")) {
+      // Get the mouse position on the screen
+      Vector2 mouseScreenPos = GetViewport().GetMousePosition();
+
+      // Get the screen transform and canvas transform and invert them
+      Transform2D screenTransform = GetViewport().GetScreenTransform();
+      Transform2D canvasTransform = GetCanvasTransform();
+
+      // Calculate the world position by applying the inverse of the transforms to the screen position
+      Vector2 mouseWorldPos = (screenTransform * canvasTransform).AffineInverse() * mouseScreenPos;
+
+      // Set the GlobalPosition of the node to the mouse's world position
+      GlobalPosition = mouseWorldPos;
+    }
   }
 
   // Handles player movement
