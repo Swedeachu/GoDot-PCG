@@ -65,7 +65,59 @@ public partial class PCG : TileMap {
 
     InitializeProtectedCells();
     GenerateMap();
+    SpawnPlayerInRandomRoom();
   }
+
+  // put the player in a random room, then go into each other room randomly and spawn stuff in them
+  private void SpawnPlayerInRandomRoom() {
+    // Ensure there are rooms available
+    if (rooms.Count > 0) {
+      // Select a random room
+      Room spawnRoom = rooms[rand.Next(rooms.Count)];
+
+      Vector2 spawnWorldPosition = Vector2.Zero;
+      bool positionFound = false;
+      int maxAttempts = 100; // Prevent infinite loops
+
+      for (int i = 0; i < maxAttempts; i++) {
+        // Select a random tile within the room's boundaries
+        int spawnX = rand.Next(spawnRoom.X, spawnRoom.X + spawnRoom.Width);
+        int spawnY = rand.Next(spawnRoom.Y, spawnRoom.Y + spawnRoom.Height);
+
+        // Check if the selected tile is a floor
+        if (mapGrid[spawnX, spawnY] == 1) {
+          // Convert tile coordinates to local coordinates
+          Vector2I cellPosition = new Vector2I(spawnX, spawnY);
+          Vector2 localPosition = MapToLocal(cellPosition);
+
+          // Convert local coordinates to global coordinates
+          spawnWorldPosition = this.ToGlobal(localPosition);
+
+          positionFound = true;
+          break;
+        }
+      }
+
+      if (!positionFound) {
+        // Fallback to the center of the room if no position was found
+        Vector2I centerCell = new Vector2I(spawnRoom.CenterX, spawnRoom.CenterY);
+        Vector2 localCenterPosition = MapToLocal(centerCell);
+        spawnWorldPosition = this.ToGlobal(localCenterPosition);
+      }
+
+      // Locate the Player node in the scene tree
+      var worldNode = GetNode<Node>("/root/World");  // Adjust the path if necessary
+      var player = worldNode.GetNode<Player>("Player");  // Ensure the Player node is correctly named
+
+      // Set the player's global position
+      player.GlobalPosition = spawnWorldPosition;
+
+      GD.Print("Player spawned at: ", spawnWorldPosition);
+    } else {
+      GD.PrintErr("No rooms available to spawn the player.");
+    }
+  }
+
 
   private void InitializeProtectedCells() {
     protectedCells = new bool[chunkWidth, chunkHeight];
