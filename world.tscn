@@ -16,5 +16,6 @@ z_index = 1
 position = Vector2(400, 400)
 
 [node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
+position = Vector2(-928, 256)
 navigation_polygon = SubResource("NavigationPolygon_65fi8")
 script = ExtResource("3_03a7q")

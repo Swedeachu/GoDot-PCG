@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using static Enemy;
 
 public partial class PCG : TileMap {
 
@@ -64,7 +65,7 @@ public partial class PCG : TileMap {
     InitializeProtectedCells();
     GenerateMap();
     SpawnPlayerInRandomRoom();
-    SpawnEnemyInRoom(spawnRoom);
+    SpawnWave(10);
   }
 
   // put the player in a random room, then go into each other room randomly and spawn stuff in them
@@ -74,39 +75,12 @@ public partial class PCG : TileMap {
       // Select a random room
       spawnRoom = rooms[rand.Next(rooms.Count)];
 
-      Vector2 spawnWorldPosition = Vector2.Zero;
-      bool positionFound = false;
-      int maxAttempts = 100; // Prevent infinite loops
-
-      for (int i = 0; i < maxAttempts; i++) {
-        // Select a random tile within the room's boundaries
-        int spawnX = rand.Next(spawnRoom.X, spawnRoom.X + spawnRoom.Width);
-        int spawnY = rand.Next(spawnRoom.Y, spawnRoom.Y + spawnRoom.Height);
-
-        // Check if the selected tile is a floor
-        if (mapGrid[spawnX, spawnY] == 1) {
-          // Convert tile coordinates to local coordinates
-          Vector2I cellPosition = new Vector2I(spawnX, spawnY);
-          Vector2 localPosition = MapToLocal(cellPosition);
-
-          // Convert local coordinates to global coordinates
-          spawnWorldPosition = this.ToGlobal(localPosition);
-
-          positionFound = true;
-          break;
-        }
-      }
-
-      if (!positionFound) {
-        // Fallback to the center of the room if no position was found
-        Vector2I centerCell = new Vector2I(spawnRoom.CenterX, spawnRoom.CenterY);
-        Vector2 localCenterPosition = MapToLocal(centerCell);
-        spawnWorldPosition = this.ToGlobal(localCenterPosition);
-      }
+      // Find a valid spawn position in the selected room
+      Vector2 spawnWorldPosition = FindSpawnPositionInRoom(spawnRoom);
 
       // Locate the Player node in the scene tree
-      var worldNode = GetNode<Node>("/root/World");  // Adjust the path if necessary
-      var player = worldNode.GetNode<Player>("Player");  // Ensure the Player node is correctly named
+      var worldNode = GetNode<Node>("/root/World");  
+      var player = worldNode.GetNode<Player>("Player");  
 
       // Set the player's global position
       player.GlobalPosition = spawnWorldPosition;
@@ -117,11 +91,76 @@ public partial class PCG : TileMap {
     }
   }
 
+  private void SpawnWave(int numberOfEnemies) {
+    List<Room> eligibleRooms = new List<Room>(rooms);
+    if (spawnRoom != null) {
+      eligibleRooms.Remove(spawnRoom); // Remove the spawn room
+    }
+
+    for (int i = 0; i < numberOfEnemies; i++) {
+      if (eligibleRooms.Count > 0) {
+        // Select a random room from the eligible rooms
+        Room room = eligibleRooms[rand.Next(eligibleRooms.Count)];
+
+        // Find a valid spawn position in the selected room
+        Vector2 spawnWorldPosition = FindSpawnPositionInRoom(room);
+
+        // Spawn enemy and set position
+        var enemy = (Enemy)enemyScene.Instantiate();
+        GetTree().Root.CallDeferred("add_child", enemy);
+        enemy.GlobalPosition = spawnWorldPosition;
+
+        // Randomize enemy type
+        EnemyType type = (EnemyType)rand.Next(Enum.GetNames(typeof(EnemyType)).Length);
+        enemy.SetEnemyType(type);
+
+        GD.Print($"Spawned {type} enemy at: {spawnWorldPosition}");
+      } else {
+        GD.PrintErr("No eligible rooms available to spawn enemies.");
+        break;
+      }
+    }
+  }
+
   private void SpawnEnemyInRoom(Room room) {
     var enemy = (Enemy)enemyScene.Instantiate();
     GetTree().Root.CallDeferred("add_child", enemy);
     enemy.GlobalPosition = MapToLocal(new Vector2I(room.CenterX, room.CenterY));
   }
+
+  private Vector2 FindSpawnPositionInRoom(Room room, int maxAttempts = 100) {
+    Vector2 spawnWorldPosition = Vector2.Zero;
+    bool positionFound = false;
+
+    for (int i = 0; i < maxAttempts; i++) {
+      // Select a random tile within the room's boundaries
+      int spawnX = rand.Next(room.X, room.X + room.Width);
+      int spawnY = rand.Next(room.Y, room.Y + room.Height);
+
+      // Check if the selected tile is a floor
+      if (mapGrid[spawnX, spawnY] == 1) {
+        // Convert tile coordinates to local coordinates
+        Vector2I cellPosition = new Vector2I(spawnX, spawnY);
+        Vector2 localPosition = MapToLocal(cellPosition);
+
+        // Convert local coordinates to global coordinates
+        spawnWorldPosition = this.ToGlobal(localPosition);
+
+        positionFound = true;
+        break;
+      }
+    }
+
+    if (!positionFound) {
+      // Fallback to the center of the room if no valid position was found
+      Vector2I centerCell = new Vector2I(room.CenterX, room.CenterY);
+      Vector2 localCenterPosition = MapToLocal(centerCell);
+      spawnWorldPosition = this.ToGlobal(localCenterPosition);
+    }
+
+    return spawnWorldPosition;
+  }
+
 
   private void InitializeProtectedCells() {
     protectedCells = new bool[chunkWidth, chunkHeight];

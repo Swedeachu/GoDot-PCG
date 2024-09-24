@@ -5,6 +5,7 @@ public partial class Bullet2 : RigidBody2D {
 
   public float Speed = 600f;  // Speed of the bullet
   private Vector2 _direction;
+  private bool isEnemyBullet = false;
 
   public override void _Ready() {
     // Disable gravity
@@ -15,20 +16,38 @@ public partial class Bullet2 : RigidBody2D {
     ContactMonitor = true;
     MaxContactsReported = 100; // not sure if making this super big beyond like a 1 or a 5 matters but 100 to gurantee the callback
 
-    BodyEntered += (Node body) => collide(body); // weird af lambda for body entered collision callback
+    BodyEntered += (Node body) => Collide(body); // weird af lambda for body entered collision callback
   }
 
-  public void Initialize(Vector2 direction) {
+  public void Initialize(Vector2 direction, bool enemy = false) {
     _direction = direction.Normalized();  // Normalize direction to ensure consistent speed
     LinearVelocity = _direction * Speed;  // Apply movement to the bullet using LinearVelocity
+    this.isEnemyBullet = enemy;
+    if (enemy) {
+      CollisionLayer = (1 << 1); // layer 2
+      CollisionMask = (1 << 1); // mask 2
+    } else {
+      CollisionLayer = (1 << 2); // layer 3
+      CollisionMask = (1 << 0) | (1 << 2); // masks 1 and 3
+    }
   }
 
   public override void _PhysicsProcess(double delta) {
     // Remove manual position updating; let physics engine handle it
   }
 
-  private void collide(Node body) {
+  private void Collide(Node body) {
     GD.Print("Bullet2D collided with " + body.Name);
+
+    // We can damage enemies, if we are not enemies
+    if (!this.isEnemyBullet && body is Enemy enemy) {
+      // Call the Damage method on the Enemy instance
+      enemy.Damage(1);
+    } else if (this.isEnemyBullet && body is Player player) { // we can damage player if we are an enemy bullet
+      player.Damage(1);
+    }
+
+    // Queue the bullet for deletion
     QueueFree();
   }
 

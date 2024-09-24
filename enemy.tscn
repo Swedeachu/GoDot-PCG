@@ -1,12 +1,20 @@
-[gd_scene load_steps=4 format=3 uid="uid://1bqdqrlgpg4g"]
+[gd_scene load_steps=7 format=3 uid="uid://1bqdqrlgpg4g"]
 
 [ext_resource type="Script" path="res://Enemy.cs" id="1_cs6l1"]
 [ext_resource type="Texture2D" uid="uid://g3ub5ffa3brk" path="res://enemy.png" id="1_hcna3"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_duvnv"]
 
+[sub_resource type="Theme" id="Theme_278r8"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cuoj0"]
+bg_color = Color(1, 0, 0, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4wvje"]
+bg_color = Color(0, 1, 0, 1)
+
 [node name="Enemy" type="CharacterBody2D"]
-collision_layer = 3
+collision_layer = 4
 script = ExtResource("1_cs6l1")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
@@ -27,3 +35,16 @@ texture = ExtResource("1_hcna3")
 [node name="Timer" type="Timer" parent="Navigation"]
 wait_time = 0.1
 autostart = true
+
+[node name="ProgressBar" type="ProgressBar" parent="."]
+offset_left = -9.0
+offset_top = -17.0
+offset_right = -5.0
+offset_bottom = 10.0
+scale = Vector2(4.8, 0.2)
+theme = SubResource("Theme_278r8")
+theme_override_styles/background = SubResource("StyleBoxFlat_cuoj0")
+theme_override_styles/fill = SubResource("StyleBoxFlat_4wvje")
+max_value = 10.0
+value = 10.0
+show_percentage = false

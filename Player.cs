@@ -5,11 +5,23 @@ public partial class Player : CharacterBody2D {
 
   public const float Speed = 300.0f;
 
+  private int maxHealth = 10;
+  private int health = 10;
+
   public PackedScene BulletScene;  // Preload the Bullet scene here
+
+  private ProgressBar healthBar;
 
   public override void _Ready() {
     // Load the bullet scene
     BulletScene = GD.Load<PackedScene>("res://bullet2.tscn");
+
+    // Get the ProgressBar node
+    healthBar = GetNode<ProgressBar>("ProgressBar");
+
+    // Initialize the health bar
+    healthBar.MaxValue = maxHealth;
+    healthBar.Value = health;
   }
 
   public override void _PhysicsProcess(double delta) {
@@ -90,6 +102,21 @@ public partial class Player : CharacterBody2D {
 
     // Add the bullet to the scene
     GetParent().AddChild(bullet);
+  }
+
+  public void Damage(int amount) {
+    health -= amount;
+
+    // Clamp the health to be at least 0
+    health = Mathf.Clamp(health, 0, maxHealth);
+
+    // Update the progress bar to reflect the current health
+    healthBar.Value = health;
+
+    // Check if the enemy's health is 0 or below
+    if (health <= 0) {
+      // Handle death...
+    }
   }
 
 }

@@ -1,10 +1,18 @@
-[gd_scene load_steps=5 format=3 uid="uid://bhbp0csn635tg"]
+[gd_scene load_steps=8 format=3 uid="uid://bhbp0csn635tg"]
 
 [ext_resource type="Script" path="res://Player.cs" id="1_75i17"]
 [ext_resource type="Texture2D" uid="uid://pmrn6bs4an35" path="res://player.png" id="1_nfqbe"]
 [ext_resource type="Script" path="res://PlayerCamera.cs" id="3_mw2j3"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_wyeji"]
+
+[sub_resource type="Theme" id="Theme_1g6gk"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_h1gbv"]
+bg_color = Color(1, 0, 0, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_iutem"]
+bg_color = Color(0, 1, 0, 1)
 
 [node name="Player" type="CharacterBody2D"]
 collision_layer = 2
@@ -23,3 +31,16 @@ texture = ExtResource("1_nfqbe")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 script = ExtResource("3_mw2j3")
+
+[node name="ProgressBar" type="ProgressBar" parent="."]
+offset_left = -9.0
+offset_top = -17.0
+offset_right = -5.0
+offset_bottom = 10.0
+scale = Vector2(4.8, 0.2)
+theme = SubResource("Theme_1g6gk")
+theme_override_styles/background = SubResource("StyleBoxFlat_h1gbv")
+theme_override_styles/fill = SubResource("StyleBoxFlat_iutem")
+max_value = 10.0
+value = 10.0
+show_percentage = false
