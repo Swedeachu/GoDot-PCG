@@ -1,7 +1,8 @@
 using Godot;
 using System;
 
-public partial class World : Node2D {
+public partial class ShakeAndBake : NavigationRegion2D
+{
 
   private PCG pcg;
   private PackedScene pcgScene;
@@ -14,7 +15,7 @@ public partial class World : Node2D {
 
   public override void _Process(double delta) {
     // Detect if the "R" key is pressed
-    if (Input.IsActionJustPressed("reset")) {
+    if (Input.IsActionJustPressed("reset")) { // we need to go through and kill all nodes named Enemy
       ReplaceTileMap();
     }
   }
@@ -35,6 +36,7 @@ public partial class World : Node2D {
     pcg = (PCG)pcgScene.Instantiate();
     AddChild(pcg);
     pcg.Position = Vector2.Zero;
+    BakeNavigationPolygon();
   }
 
 }

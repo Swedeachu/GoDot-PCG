@@ -1,11 +1,20 @@
-[gd_scene load_steps=3 format=3 uid="uid://c0p1tr10bdyvn"]
+[gd_scene load_steps=4 format=3 uid="uid://c0p1tr10bdyvn"]
 
-[ext_resource type="Script" path="res://World.cs" id="1_iesjk"]
 [ext_resource type="PackedScene" uid="uid://bhbp0csn635tg" path="res://player.tscn" id="2_oxj15"]
+[ext_resource type="Script" path="res://ShakeAndBake.cs" id="3_03a7q"]
+
+[sub_resource type="NavigationPolygon" id="NavigationPolygon_65fi8"]
+vertices = PackedVector2Array(13772, 5535, -7814, 4810, -7654, -4588, 14175, -4829)
+polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3)])
+outlines = Array[PackedVector2Array]([PackedVector2Array(-7664, -4598, -7825, 4820, 13782, 5546, 14186, -4840)])
+source_geometry_group_name = &"navigation_polygon_source_group"
 
 [node name="World" type="Node2D"]
-script = ExtResource("1_iesjk")
 
 [node name="Player" parent="." instance=ExtResource("2_oxj15")]
 z_index = 1
 position = Vector2(400, 400)
+
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
+navigation_polygon = SubResource("NavigationPolygon_65fi8")
+script = ExtResource("3_03a7q")

@@ -36,9 +36,7 @@ public partial class PCG : TileMap {
   private Vector2 CellSize = new Vector2(32, 32);
 
   // The following have a 50% chance of spawning in a fittable floor part of the scene in each biome region (happens last in the generation process)
-  public PackedScene CastleScene; // Goes in forest/jungle
-  public PackedScene IglooScene; // Goes in ice
-  public PackedScene PyramidScene; // Goes in hot biome
+  public PackedScene enemyScene;
 
   // To keep track of occupied tiles to prevent overlapping structures
   private bool[,] occupied;
@@ -47,6 +45,8 @@ public partial class PCG : TileMap {
 
   // List of rooms
   private List<Room> rooms = new List<Room>();
+
+  private Room spawnRoom;
 
   // To protect rooms and corridors during smoothing
   private bool[,] protectedCells;
@@ -57,15 +57,14 @@ public partial class PCG : TileMap {
     temperatureNoise.Seed = (int)GD.Randi();
     temperatureNoise.Frequency = temperatureNoiseFrequency;
 
-    CastleScene = GD.Load<PackedScene>("res://castle.tscn");
-    IglooScene = GD.Load<PackedScene>("res://igloo.tscn");
-    PyramidScene = GD.Load<PackedScene>("res://pyramid.tscn");
+    enemyScene = GD.Load<PackedScene>("res://enemy.tscn");
 
     occupied = new bool[chunkWidth, chunkHeight];
 
     InitializeProtectedCells();
     GenerateMap();
     SpawnPlayerInRandomRoom();
+    SpawnEnemyInRoom(spawnRoom);
   }
 
   // put the player in a random room, then go into each other room randomly and spawn stuff in them
@@ -73,7 +72,7 @@ public partial class PCG : TileMap {
     // Ensure there are rooms available
     if (rooms.Count > 0) {
       // Select a random room
-      Room spawnRoom = rooms[rand.Next(rooms.Count)];
+      spawnRoom = rooms[rand.Next(rooms.Count)];
 
       Vector2 spawnWorldPosition = Vector2.Zero;
       bool positionFound = false;
@@ -118,6 +117,11 @@ public partial class PCG : TileMap {
     }
   }
 
+  private void SpawnEnemyInRoom(Room room) {
+    var enemy = (Enemy)enemyScene.Instantiate();
+    GetTree().Root.CallDeferred("add_child", enemy);
+    enemy.GlobalPosition = MapToLocal(new Vector2I(room.CenterX, room.CenterY));
+  }
 
   private void InitializeProtectedCells() {
     protectedCells = new bool[chunkWidth, chunkHeight];
