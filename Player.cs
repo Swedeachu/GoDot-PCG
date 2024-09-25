@@ -3,12 +3,15 @@ using System;
 
 public partial class Player : CharacterBody2D {
 
-  public const float Speed = 300.0f;
+  public float Speed = 300.0f;
 
   private int maxHealth = 10;
   private int health = 10;
 
-  public PackedScene BulletScene;  // Preload the Bullet scene here
+  private float originalSpeed = 300.0f;  // To store the player's original speed
+  private bool tripleShotActive = false;  // Track if triple shot is active
+
+  public PackedScene BulletScene;  
 
   private ProgressBar healthBar;
 
@@ -89,19 +92,61 @@ public partial class Player : CharacterBody2D {
       return;
     }
 
-    // Instance the bullet
-    var bullet = (Bullet2)BulletScene.Instantiate();
-
-    // Set bullet's position to the player's position
-    bullet.Position = GlobalPosition;
-
-    // Set the direction of the bullet towards the mouse
     Vector2 mousePosition = GetGlobalMousePosition();
     Vector2 direction = mousePosition - GlobalPosition;
-    bullet.Initialize(direction);  // Pass direction to the bullet
 
-    // Add the bullet to the scene
+    if (tripleShotActive) {
+      // Triple shot: spawn 3 bullets with slight angle variations
+      ShootBullet(direction.Rotated(Mathf.DegToRad(-15)));  // Left bullet
+      ShootBullet(direction);  // Center bullet
+      ShootBullet(direction.Rotated(Mathf.DegToRad(15)));  // Right bullet
+    } else {
+      // Single shot
+      ShootBullet(direction);
+    }
+  }
+
+  // Function to spawn a bullet in a given direction
+  private void ShootBullet(Vector2 direction) {
+    var bullet = (Bullet2)BulletScene.Instantiate();
+    bullet.Position = GlobalPosition;
+    bullet.Initialize(direction);  // Pass direction to the bullet
     GetParent().AddChild(bullet);
+  }
+
+  // Apply the effect of an item when collected
+  public void ApplyItemEffect(Item.ItemType itemType) {
+    switch (itemType) {
+      case Item.ItemType.Heal:
+      SetHealth(maxHealth);
+      break;
+      case Item.ItemType.Speed:
+      ActivateSpeedBoost();
+      break;
+      case Item.ItemType.Damage:
+      ActivateTripleShot();
+      break;
+    }
+  }
+
+  // Activate speed boost temporarily
+  private async void ActivateSpeedBoost() {
+    GD.Print("Speed boost activated!");
+    Speed = originalSpeed * 2;  // Double the player's speed
+
+    await ToSignal(GetTree().CreateTimer(5.0f), "timeout");  // Wait for 5 seconds
+    Speed = originalSpeed;  // Revert to original speed
+    GD.Print("Speed boost ended.");
+  }
+
+  // Activate triple shot temporarily
+  private async void ActivateTripleShot() {
+    GD.Print("Triple shot activated!");
+    tripleShotActive = true;
+
+    await ToSignal(GetTree().CreateTimer(5.0f), "timeout");  // Wait for 5 seconds
+    tripleShotActive = false;  // Revert to normal single shot
+    GD.Print("Triple shot ended.");
   }
 
   public void Damage(int amount) {
@@ -117,6 +162,11 @@ public partial class Player : CharacterBody2D {
     if (health <= 0) {
       // Handle death...
     }
+  }
+
+  public void SetHealth(int value) {
+    this.health = value;
+    healthBar.Value = health;
   }
 
 }

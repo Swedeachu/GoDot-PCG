@@ -8,13 +8,12 @@ public partial class Bullet2 : RigidBody2D {
   private bool isEnemyBullet = false;
 
   public override void _Ready() {
-    // Disable gravity
     GravityScale = 0;  // Disable gravity for top-down movement
 
     // Physics stuff we need for movement and collision
     FreezeMode = RigidBody2D.FreezeModeEnum.Kinematic;
     ContactMonitor = true;
-    MaxContactsReported = 100; // not sure if making this super big beyond like a 1 or a 5 matters but 100 to gurantee the callback
+    MaxContactsReported = 5; // not sure if making this super big beyond like a 1 or a 5 matters
 
     BodyEntered += (Node body) => Collide(body); // weird af lambda for body entered collision callback
   }
@@ -37,11 +36,16 @@ public partial class Bullet2 : RigidBody2D {
   }
 
   private void Collide(Node body) {
-    GD.Print("Bullet2D collided with " + body.Name);
+    if (body is Bullet2 bullet) {
+      // bullets of different types destroy eachother, otherwise they just ignore each other
+      if(bullet.isEnemyBullet != this.isEnemyBullet) {
+        QueueFree();
+        bullet.QueueFree();
+      }
+      return;
+    }
 
-    // We can damage enemies, if we are not enemies
-    if (!this.isEnemyBullet && body is Enemy enemy) {
-      // Call the Damage method on the Enemy instance
+    if (!this.isEnemyBullet && body is Enemy enemy) { // We can damage enemies, if we are not enemies
       enemy.Damage(1);
     } else if (this.isEnemyBullet && body is Player player) { // we can damage player if we are an enemy bullet
       player.Damage(1);

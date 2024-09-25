@@ -1,8 +1,7 @@
 using Godot;
 using System;
 
-public partial class ShakeAndBake : NavigationRegion2D
-{
+public partial class ShakeAndBake : NavigationRegion2D {
 
   private PCG pcg;
   private PackedScene pcgScene;
@@ -16,7 +15,25 @@ public partial class ShakeAndBake : NavigationRegion2D
   public override void _Process(double delta) {
     // Detect if the "R" key is pressed
     if (Input.IsActionJustPressed("reset")) { // we need to go through and kill all nodes named Enemy
+      KillEnemies();
       ReplaceTileMap();
+    }
+  }
+
+  private void KillEnemies() {
+    Node root = GetTree().Root;
+
+    foreach (Node child in root.GetChildren()) {
+      if (child is Enemy || child is Item) {
+        child.QueueFree();
+      }
+    }
+
+    Node world = root.GetNode("World");  
+    foreach (Node child in world.GetChildren()) {
+      if (child is Player player) {
+        player.SetHealth(10); // back to max health
+      }
     }
   }
 

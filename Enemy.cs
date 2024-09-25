@@ -22,8 +22,8 @@ public partial class Enemy : CharacterBody2D {
 
   private ProgressBar healthBar;
 
-  private int maxHealth = 10;
-  private int health = 10;
+  private int maxHealth;
+  private int health;
   private float shootRange = 300f;
   private float shootCooldown = 2.0f;
   private float timeSinceLastShot = 0f;
@@ -50,7 +50,6 @@ public partial class Enemy : CharacterBody2D {
     // Load the bullet scene
     BulletScene = GD.Load<PackedScene>("res://bullet2.tscn");
 
-    SetEnemyType(EnemyType.Trivial);  // Default enemy type
     FindPlayer();
   }
 
@@ -93,9 +92,9 @@ public partial class Enemy : CharacterBody2D {
 
       if (playerNode != null) {
         target = playerNode;
-        GD.Print("Player found: ", target.Name);
+        // GD.Print("Player found: ", target.Name);
       } else {
-        GD.PrintErr("Player node not found!");
+        // GD.PrintErr("Player node not found!");
       }
     } else {
       GD.PrintErr("World node not found!");
@@ -147,12 +146,11 @@ public partial class Enemy : CharacterBody2D {
 
     // Add the bullet to the scene
     GetParent().AddChild(bullet);
-
-    GD.Print("Enemy shot at player.");
   }
 
   // Set different attributes based on the enemy type
   public void SetEnemyType(EnemyType type) {
+    var textureRect = GetNode<TextureRect>("TextureRect"); 
     enemyType = type;
     // Modulate doesen't work because I think we need to do it on the sprite
     switch (enemyType) {
@@ -161,35 +159,39 @@ public partial class Enemy : CharacterBody2D {
       maxHealth = 5;
       shootRange = 150f;
       shootCooldown = 3.0f;
-      Modulate = new Color(1, 1, 1); // White
+      textureRect.SelfModulate = new Color(1, 1, 1); // White (no modulation basically)
       break;
+
       case EnemyType.Easy:
       speed = 110f;
       maxHealth = 10;
       shootRange = 200f;
       shootCooldown = 2.5f;
-      Modulate = new Color(0, 1, 0); // Green
+      textureRect.SelfModulate = new Color(0, 1, 0); // Green
       break;
+
       case EnemyType.Medium:
       speed = 120f;
-      maxHealth = 20;
+      maxHealth = 5;
       shootRange = 250f;
       shootCooldown = 2.0f;
-      Modulate = new Color(1, 1, 0); // Yellow
+      textureRect.SelfModulate = new Color(1, 1, 0); // Yellow
       break;
+
       case EnemyType.Hard:
       speed = 130f;
-      maxHealth = 30;
+      maxHealth = 15;
       shootRange = 300f;
       shootCooldown = 1.5f;
-      Modulate = new Color(1, 0, 0); // Red
+      textureRect.SelfModulate = new Color(1, 0, 0); // Red
       break;
+
       case EnemyType.Boss:
       speed = 100f;
       maxHealth = 100;
       shootRange = 400f;
       shootCooldown = 1.0f;
-      Modulate = new Color(1, 0.5f, 1); // Pink
+      textureRect.SelfModulate = new Color(1, 0.5f, 1); // Pink
       break;
     }
     health = maxHealth;

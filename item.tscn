@@ -1,0 +1,23 @@
+[gd_scene load_steps=4 format=3 uid="uid://b7qvrdb2qemiy"]
+
+[ext_resource type="Script" path="res://Item.cs" id="1_0jq2o"]
+[ext_resource type="Texture2D" uid="uid://dytg0xcb64ui6" path="res://heart.png" id="1_xibb3"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_4uw8d"]
+
+[node name="StaticBody2D" type="RigidBody2D"]
+collision_layer = 2
+collision_mask = 3
+script = ExtResource("1_0jq2o")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_4uw8d")
+
+[node name="TextureRect" type="TextureRect" parent="."]
+z_index = 10
+offset_left = -13.0
+offset_top = -8.0
+offset_right = 302.0
+offset_bottom = 242.0
+scale = Vector2(0.0851483, 0.0692919)
+texture = ExtResource("1_xibb3")

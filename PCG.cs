@@ -38,6 +38,7 @@ public partial class PCG : TileMap {
 
   // The following have a 50% chance of spawning in a fittable floor part of the scene in each biome region (happens last in the generation process)
   public PackedScene enemyScene;
+  public PackedScene itemScene;
 
   // To keep track of occupied tiles to prevent overlapping structures
   private bool[,] occupied;
@@ -59,13 +60,15 @@ public partial class PCG : TileMap {
     temperatureNoise.Frequency = temperatureNoiseFrequency;
 
     enemyScene = GD.Load<PackedScene>("res://enemy.tscn");
+    itemScene = GD.Load<PackedScene>("res://item.tscn");
 
     occupied = new bool[chunkWidth, chunkHeight];
 
     InitializeProtectedCells();
     GenerateMap();
     SpawnPlayerInRandomRoom();
-    SpawnWave(10);
+    SpawnEnemyWave(10);
+    SpawnItemWave(10);
   }
 
   // put the player in a random room, then go into each other room randomly and spawn stuff in them
@@ -79,19 +82,44 @@ public partial class PCG : TileMap {
       Vector2 spawnWorldPosition = FindSpawnPositionInRoom(spawnRoom);
 
       // Locate the Player node in the scene tree
-      var worldNode = GetNode<Node>("/root/World");  
-      var player = worldNode.GetNode<Player>("Player");  
+      var worldNode = GetNode<Node>("/root/World");
+      var player = worldNode.GetNode<Player>("Player");
 
       // Set the player's global position
       player.GlobalPosition = spawnWorldPosition;
-
-      GD.Print("Player spawned at: ", spawnWorldPosition);
     } else {
       GD.PrintErr("No rooms available to spawn the player.");
     }
   }
 
-  private void SpawnWave(int numberOfEnemies) {
+  private void SpawnItemWave(int numberofItems) {
+    List<Room> eligibleRooms = new List<Room>(rooms);
+
+    for (int i = 0; i < numberofItems; i++) {
+      if (eligibleRooms.Count > 0) {
+        // Select a random room from the eligible rooms
+        Room room = eligibleRooms[rand.Next(eligibleRooms.Count)];
+        eligibleRooms.Remove(room); // don't want repeat rooms with multiple items
+
+        // Find a valid spawn position in the selected room
+        Vector2 spawnWorldPosition = FindSpawnPositionInRoom(room);
+
+        // Spawn enemy and set position
+        var item = (Item)itemScene.Instantiate();
+        GetTree().Root.CallDeferred("add_child", item);
+        item.GlobalPosition = spawnWorldPosition;
+
+        // Randomize item type
+        Item.ItemType type = (Item.ItemType)rand.Next(Enum.GetNames(typeof(Item.ItemType)).Length);
+        item.SetType(type);
+      } else {
+        GD.PrintErr("No eligible rooms available to spawn item.");
+        break;
+      }
+    }
+  }
+
+  private void SpawnEnemyWave(int numberOfEnemies) {
     List<Room> eligibleRooms = new List<Room>(rooms);
     if (spawnRoom != null) {
       eligibleRooms.Remove(spawnRoom); // Remove the spawn room
@@ -112,9 +140,8 @@ public partial class PCG : TileMap {
 
         // Randomize enemy type
         EnemyType type = (EnemyType)rand.Next(Enum.GetNames(typeof(EnemyType)).Length);
+        if (type == EnemyType.Boss) type = EnemyType.Hard; // we don't want to spawn bosses just yet
         enemy.SetEnemyType(type);
-
-        GD.Print($"Spawned {type} enemy at: {spawnWorldPosition}");
       } else {
         GD.PrintErr("No eligible rooms available to spawn enemies.");
         break;
@@ -137,8 +164,8 @@ public partial class PCG : TileMap {
       int spawnX = rand.Next(room.X, room.X + room.Width);
       int spawnY = rand.Next(room.Y, room.Y + room.Height);
 
-      // Check if the selected tile is a floor
-      if (mapGrid[spawnX, spawnY] == 1) {
+      // Check if the selected tile is a floor and not adjacent to a wall
+      if (mapGrid[spawnX, spawnY] == 1 && !IsNextToWall(spawnX, spawnY)) {
         // Convert tile coordinates to local coordinates
         Vector2I cellPosition = new Vector2I(spawnX, spawnY);
         Vector2 localPosition = MapToLocal(cellPosition);
@@ -159,6 +186,31 @@ public partial class PCG : TileMap {
     }
 
     return spawnWorldPosition;
+  }
+
+  private bool IsNextToWall(int x, int y) {
+    // Check the four neighboring tiles (up, down, left, right)
+    int[,] directions = new int[,] {
+        { 0, -1 },  // Up
+        { 0, 1 },   // Down
+        { -1, 0 },  // Left
+        { 1, 0 }    // Right
+    };
+
+    // Loop through each direction and check for walls
+    for (int i = 0; i < 4; i++) {
+      int nx = x + directions[i, 0];
+      int ny = y + directions[i, 1];
+
+      // Ensure we are within map bounds and check if it's a wall (assuming wall tiles are not 1)
+      if (nx >= 0 && ny >= 0 && nx < mapGrid.GetLength(0) && ny < mapGrid.GetLength(1)) {
+        if (mapGrid[nx, ny] != 1) {
+          return true;  // Neighboring tile is a wall
+        }
+      }
+    }
+
+    return false;  // No neighboring walls
   }
 
 

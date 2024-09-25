@@ -42,5 +42,7 @@ theme = SubResource("Theme_1g6gk")
 theme_override_styles/background = SubResource("StyleBoxFlat_h1gbv")
 theme_override_styles/fill = SubResource("StyleBoxFlat_iutem")
 max_value = 10.0
+step = 1.0
 value = 10.0
+exp_edit = true
 show_percentage = false
