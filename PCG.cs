@@ -5,6 +5,8 @@ using static Enemy;
 
 public partial class PCG : TileMap {
 
+  public static PCG instance { get; private set; }
+
   private FastNoiseLite noise = new FastNoiseLite();
   private FastNoiseLite temperatureNoise = new FastNoiseLite();
 
@@ -54,6 +56,7 @@ public partial class PCG : TileMap {
   private bool[,] protectedCells;
 
   public override void _Ready() {
+    instance = this;
     // Initialize noise parameters
     noise.Seed = (int)GD.Randi();
     temperatureNoise.Seed = (int)GD.Randi();
@@ -72,7 +75,7 @@ public partial class PCG : TileMap {
   }
 
   // put the player in a random room, then go into each other room randomly and spawn stuff in them
-  private void SpawnPlayerInRandomRoom() {
+  public void SpawnPlayerInRandomRoom() {
     // Ensure there are rooms available
     if (rooms.Count > 0) {
       // Select a random room

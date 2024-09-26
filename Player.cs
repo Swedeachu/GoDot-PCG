@@ -11,7 +11,7 @@ public partial class Player : CharacterBody2D {
   private float originalSpeed = 300.0f;  // To store the player's original speed
   private bool tripleShotActive = false;  // Track if triple shot is active
 
-  public PackedScene BulletScene;  
+  public PackedScene BulletScene;
 
   private ProgressBar healthBar;
 
@@ -176,7 +176,15 @@ public partial class Player : CharacterBody2D {
     if (health <= 0) {
       // Handle death...
       TelemetryManager.Instance.AddDeath(); // telemetry
-      // TODO : respawn and heal
+      Respawn();
+    }
+  }
+
+  private void Respawn() {
+    health = maxHealth;
+    healthBar.Value = health;
+    if (PCG.instance != null) {
+      PCG.instance.SpawnPlayerInRandomRoom();
     }
   }
 

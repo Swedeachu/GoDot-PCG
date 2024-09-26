@@ -1,6 +1,5 @@
 using Godot;
 using static Enemy;
-using System.IO;
 using System.Collections.Generic;
 
 public partial class TelemetryManager : Node2D {
@@ -24,6 +23,10 @@ public partial class TelemetryManager : Node2D {
   public override void _Process(double delta) {
     // Update time spent
     timeSpent += delta;
+    // I guess for now press space to log?
+    if (Input.IsActionJustPressed("space")) {
+      Write();
+    }
   }
 
   public void AddShotFired() { shotsFired++; }
@@ -44,22 +47,41 @@ public partial class TelemetryManager : Node2D {
 
   public void AddDistance(float distance) { distanceTraveled += distance; }
 
-  public void Write(string filePath) {
-    using (StreamWriter writer = new StreamWriter(filePath)) {
-      // Write headers
-      writer.WriteLine("Shots Fired,Damage Taken,Pickups Collected,Deaths Suffered,Distance Traveled,Time Spent");
+  public void Write() {
+    // Construct the file name and path
+    string fileName = "telemetry_data_stage1.csv";
+    string filePath = "user://" + fileName;
 
-      // Write basic telemetry data
-      writer.WriteLine($"{shotsFired},{damageTaken},{pickupsCollected},{deathsSuffered},{distanceTraveled},{timeSpent}");
+    // Use StringBuilder to build the CSV content
+    System.Text.StringBuilder csvContent = new System.Text.StringBuilder();
 
-      // Write kills by type
-      writer.WriteLine("\nKills Inflicted by Enemy Type:");
-      foreach (var kill in killsByType) {
-        writer.WriteLine($"{kill.Key},{kill.Value}");
-      }
+    // Write the headers
+    csvContent.AppendLine("Shots Fired,Damage Taken,Pickups Collected,Deaths Suffered,Distance Traveled,Time Spent");
+
+    // Write the basic telemetry data
+    csvContent.AppendLine($"{shotsFired},{damageTaken},{pickupsCollected},{deathsSuffered},{distanceTraveled},{timeSpent}");
+
+    // Add a separator for the kill data
+    csvContent.AppendLine("\nKills Inflicted by Enemy Type:");
+
+    // Write kills by enemy type
+    foreach (var kill in killsByType) {
+      csvContent.AppendLine($"{kill.Key},{kill.Value}");
     }
 
-    GD.Print("Telemetry data written to: " + filePath);
+    // Use Godot's FileAccess to open the file for writing
+    using var file = FileAccess.Open(filePath, FileAccess.ModeFlags.Write);
+    if (file != null) {
+      // Write the CSV content to the file
+      file.StoreString(csvContent.ToString());
+      file.Close();
+
+      // Print confirmation
+      string realPath = ProjectSettings.GlobalizePath(filePath);
+      GD.Print("Telemetry data written to: " + realPath);
+    } else {
+      GD.PrintErr("Failed to write telemetry data to file.");
+    }
   }
 
 }
