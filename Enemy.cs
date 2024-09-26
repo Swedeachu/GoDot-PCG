@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using static Godot.OpenXRInterface;
 
 public partial class Enemy : CharacterBody2D {
 
@@ -32,6 +33,9 @@ public partial class Enemy : CharacterBody2D {
   private EnemyType enemyType;
 
   public PackedScene BulletScene;
+  public PackedScene itemScene;
+
+  private RandomNumberGenerator rand = new RandomNumberGenerator();
 
   public override void _Ready() {
     // Get the NavigationAgent2D from the scene tree
@@ -49,6 +53,7 @@ public partial class Enemy : CharacterBody2D {
 
     // Load the bullet scene
     BulletScene = GD.Load<PackedScene>("res://bullet2.tscn");
+    itemScene = GD.Load<PackedScene>("res://item.tscn");
 
     FindPlayer();
   }
@@ -115,12 +120,46 @@ public partial class Enemy : CharacterBody2D {
       QueueFree();
       DropItem();
       TelemetryManager.Instance.AddKill(enemyType);
+      // every 10 kills spawn the boss
+      if (TelemetryManager.Instance.GetTotalKills() % 10 == 0) {
+        PCG.Instance.SpawnBoss();
+      }
     }
   }
 
   // Random chance of dropping an item based on enemy difficulty level
   private void DropItem() {
-    // Logic for dropping items
+    // Determine the drop chance based on enemy type
+    float dropChance = 0f;
+
+    switch (enemyType) {
+      case EnemyType.Trivial:
+      case EnemyType.Easy:
+      case EnemyType.Medium:
+      dropChance = 0.1f; // 1/10 chance
+      break;
+
+      case EnemyType.Hard:
+      case EnemyType.Boss:
+      dropChance = 0.33f; // 1/3 chance
+      break;
+    }
+
+    // Generate a random float between 0 and 1, and drop an item if it's less than the dropChance
+    rand.Randomize(); // Ensure randomness
+    if (rand.Randf() <= dropChance) {
+      // Spawn item and set position
+      var item = (Item)itemScene.Instantiate();
+      GetTree().Root.CallDeferred("add_child", item);
+      item.GlobalPosition = GlobalPosition;
+
+      // Randomize item type
+      Item.ItemType type = (Item.ItemType)rand.RandiRange(0, Enum.GetNames(typeof(Item.ItemType)).Length - 1);
+      item.SetType(type);
+      GD.Print("Item dropped!");
+    } else {
+      GD.Print("No item dropped.");
+    }
   }
 
   // Check if player is within range to shoot
@@ -128,24 +167,57 @@ public partial class Enemy : CharacterBody2D {
     return GlobalPosition.DistanceTo(playerPosition) <= range;
   }
 
-  // Shooting at the player
+  // Modify shooting logic based on enemy type
   private void ShootAtTarget() {
     if (BulletScene == null) {
       GD.PrintErr("Bullet scene not loaded");
       return;
     }
 
-    // Instance the bullet
-    var bullet = (Bullet2)BulletScene.Instantiate();
-
-    // Set bullet's position to the enemy's position
-    bullet.Position = GlobalPosition;
-
-    // Set the direction of the bullet towards the player
     Vector2 direction = target.GlobalPosition - GlobalPosition;
-    bullet.Initialize(direction, true);  // Pass direction to the bullet
 
-    // Add the bullet to the scene
+    switch (enemyType) {
+      case EnemyType.Trivial:
+      // Single shot
+      ShootBullet(direction);
+      break;
+
+      case EnemyType.Easy:
+      // Double shot: 2 bullets slightly angled
+      ShootBullet(direction.Rotated(Mathf.DegToRad(-10)));  // Left bullet
+      ShootBullet(direction.Rotated(Mathf.DegToRad(10)));   // Right bullet
+      break;
+
+      case EnemyType.Medium:
+      // Triple shot: 3 bullets slightly angled
+      ShootBullet(direction.Rotated(Mathf.DegToRad(-15)));  // Left bullet
+      ShootBullet(direction);  // Center bullet
+      ShootBullet(direction.Rotated(Mathf.DegToRad(15)));   // Right bullet
+      break;
+
+      case EnemyType.Hard:
+      // Quad shot: 4 bullets in different diagonal directions
+      ShootBullet(direction.Rotated(Mathf.DegToRad(-30)));  // Far left bullet
+      ShootBullet(direction.Rotated(Mathf.DegToRad(-10)));  // Left bullet
+      ShootBullet(direction.Rotated(Mathf.DegToRad(10)));   // Right bullet
+      ShootBullet(direction.Rotated(Mathf.DegToRad(30)));   // Far right bullet
+      break;
+
+      case EnemyType.Boss:
+      // Diagonal quad shot: 4 bullets in diagonal directions
+      ShootBullet(new Vector2(1, 1).Normalized());   // Bottom right
+      ShootBullet(new Vector2(-1, 1).Normalized());  // Bottom left
+      ShootBullet(new Vector2(1, -1).Normalized());  // Top right
+      ShootBullet(new Vector2(-1, -1).Normalized()); // Top left
+      break;
+    }
+  }
+
+  // Function to spawn a bullet in a given direction
+  private void ShootBullet(Vector2 direction) {
+    var bullet = (Bullet2)BulletScene.Instantiate();
+    bullet.Position = GlobalPosition;
+    bullet.Initialize(direction, true); 
     GetParent().AddChild(bullet);
   }
 
@@ -189,7 +261,7 @@ public partial class Enemy : CharacterBody2D {
 
       case EnemyType.Boss:
       speed = 100f;
-      maxHealth = 100;
+      maxHealth = 40;
       shootRange = 400f;
       shootCooldown = 1.0f;
       textureRect.SelfModulate = new Color(1, 0.5f, 1); // Pink

@@ -5,7 +5,7 @@ using static Enemy;
 
 public partial class PCG : TileMap {
 
-  public static PCG instance { get; private set; }
+  public static PCG Instance { get; private set; }
 
   private FastNoiseLite noise = new FastNoiseLite();
   private FastNoiseLite temperatureNoise = new FastNoiseLite();
@@ -56,7 +56,7 @@ public partial class PCG : TileMap {
   private bool[,] protectedCells;
 
   public override void _Ready() {
-    instance = this;
+    Instance = this;
     // Initialize noise parameters
     noise.Seed = (int)GD.Randi();
     temperatureNoise.Seed = (int)GD.Randi();
@@ -95,6 +95,18 @@ public partial class PCG : TileMap {
     }
   }
 
+  public void SpawnBoss() {
+    List<Room> eligibleRooms = new List<Room>(rooms);
+    Room room = eligibleRooms[rand.Next(eligibleRooms.Count)];
+    // Find a valid spawn position in the selected room
+    Vector2 spawnWorldPosition = FindSpawnPositionInRoom(room);
+    // Spawn an enemy
+    var enemy = (Enemy)enemyScene.Instantiate();
+    GetTree().Root.CallDeferred("add_child", enemy);
+    enemy.GlobalPosition = spawnWorldPosition;
+    enemy.SetEnemyType(EnemyType.Boss);
+  }
+
   private void SpawnItemWave(int numberofItems) {
     List<Room> eligibleRooms = new List<Room>(rooms);
 
@@ -107,7 +119,7 @@ public partial class PCG : TileMap {
         // Find a valid spawn position in the selected room
         Vector2 spawnWorldPosition = FindSpawnPositionInRoom(room);
 
-        // Spawn enemy and set position
+        // Spawn item and set position
         var item = (Item)itemScene.Instantiate();
         GetTree().Root.CallDeferred("add_child", item);
         item.GlobalPosition = spawnWorldPosition;

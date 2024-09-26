@@ -19,7 +19,14 @@ public partial class TelemetryManager : Node2D {
     Instance = this;
   }
 
-  // TODO : key press to save telemetry
+  public int GetTotalKills() {
+    int count = 0;
+    foreach (var pair in killsByType) {
+      count += pair.Value;
+    }
+    return count;
+  }
+
   public override void _Process(double delta) {
     // Update time spent
     timeSpent += delta;

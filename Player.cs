@@ -183,8 +183,8 @@ public partial class Player : CharacterBody2D {
   private void Respawn() {
     health = maxHealth;
     healthBar.Value = health;
-    if (PCG.instance != null) {
-      PCG.instance.SpawnPlayerInRandomRoom();
+    if (PCG.Instance != null) {
+      PCG.Instance.SpawnPlayerInRandomRoom();
     }
   }
 
