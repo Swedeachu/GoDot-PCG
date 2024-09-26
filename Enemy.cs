@@ -114,6 +114,7 @@ public partial class Enemy : CharacterBody2D {
     if (health <= 0) {
       QueueFree();
       DropItem();
+      TelemetryManager.Instance.AddKill(enemyType);
     }
   }
 

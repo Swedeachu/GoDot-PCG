@@ -1,5 +1,6 @@
-[gd_scene load_steps=4 format=3 uid="uid://c0p1tr10bdyvn"]
+[gd_scene load_steps=5 format=3 uid="uid://c0p1tr10bdyvn"]
 
+[ext_resource type="Script" path="res://TelemetryManager.cs" id="1_y4ouu"]
 [ext_resource type="PackedScene" uid="uid://bhbp0csn635tg" path="res://player.tscn" id="2_oxj15"]
 [ext_resource type="Script" path="res://ShakeAndBake.cs" id="3_03a7q"]
 
@@ -10,6 +11,7 @@ outlines = Array[PackedVector2Array]([PackedVector2Array(-7664, -4598, -7825, 48
 source_geometry_group_name = &"navigation_polygon_source_group"
 
 [node name="World" type="Node2D"]
+script = ExtResource("1_y4ouu")
 
 [node name="Player" parent="." instance=ExtResource("2_oxj15")]
 z_index = 1

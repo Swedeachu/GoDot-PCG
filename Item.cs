@@ -50,6 +50,8 @@ public partial class Item : RigidBody2D {
 
       // Destroy the item after it's collected
       QueueFree();
+
+      TelemetryManager.Instance.AddPickupCollected(); // telemetry
     }
   }
 

@@ -52,6 +52,8 @@ public partial class Player : CharacterBody2D {
     }
   }
 
+  private Vector2 previousPosition;
+
   // Handles player movement
   private void Movement(double delta) {
     Vector2 velocity = Velocity;
@@ -66,8 +68,19 @@ public partial class Player : CharacterBody2D {
       velocity = Vector2.Zero;  // Stop movement when there's no input
     }
 
+    // Move the player
     Velocity = velocity;
     MoveAndSlide();
+
+    // Calculate the distance traveled this frame
+    Vector2 currentPosition = GlobalPosition;
+    float distanceTraveled = previousPosition.DistanceTo(currentPosition);
+
+    // Update the telemetry manager with the distance traveled
+    TelemetryManager.Instance.AddDistance(distanceTraveled); // telemetry
+
+    // Update the previous position for the next frame
+    previousPosition = currentPosition;
   }
 
   // Rotates the player to face the mouse cursor
@@ -112,6 +125,7 @@ public partial class Player : CharacterBody2D {
     bullet.Position = GlobalPosition;
     bullet.Initialize(direction);  // Pass direction to the bullet
     GetParent().AddChild(bullet);
+    TelemetryManager.Instance.AddShotFired(); // telemetry
   }
 
   // Apply the effect of an item when collected
@@ -161,6 +175,8 @@ public partial class Player : CharacterBody2D {
     // Check if the enemy's health is 0 or below
     if (health <= 0) {
       // Handle death...
+      TelemetryManager.Instance.AddDeath(); // telemetry
+      // TODO : respawn and heal
     }
   }
 

@@ -49,6 +49,7 @@ public partial class Bullet2 : RigidBody2D {
       enemy.Damage(1);
     } else if (this.isEnemyBullet && body is Player player) { // we can damage player if we are an enemy bullet
       player.Damage(1);
+      TelemetryManager.Instance.AddDamageTaken(1); // telemetry
     }
 
     // Queue the bullet for deletion
