@@ -36,7 +36,7 @@ public partial class Player : CharacterBody2D {
       Shoot();
     }
 
-    if (Input.IsActionJustPressed("right_click")) {
+    if (Input.IsActionJustPressed("teleport")) {
       // Get the mouse position on the screen
       Vector2 mouseScreenPos = GetViewport().GetMousePosition();
 

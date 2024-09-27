@@ -189,41 +189,54 @@ public partial class Enemy : CharacterBody2D {
       break;
 
       case EnemyType.Medium:
-      // Triple shot: 3 bullets slightly angled
+      // Double shot too but its faster
       ShootBullet(direction.Rotated(Mathf.DegToRad(-15)));  // Left bullet
-      ShootBullet(direction);  // Center bullet
       ShootBullet(direction.Rotated(Mathf.DegToRad(15)));   // Right bullet
       break;
 
       case EnemyType.Hard:
-      // Quad shot: 4 bullets in different diagonal directions
-      ShootBullet(direction.Rotated(Mathf.DegToRad(-30)));  // Far left bullet
-      ShootBullet(direction.Rotated(Mathf.DegToRad(-10)));  // Left bullet
-      ShootBullet(direction.Rotated(Mathf.DegToRad(10)));   // Right bullet
-      ShootBullet(direction.Rotated(Mathf.DegToRad(30)));   // Far right bullet
+      QuadShot(direction);
       break;
 
       case EnemyType.Boss:
-      // Diagonal quad shot: 4 bullets in diagonal directions
-      ShootBullet(new Vector2(1, 1).Normalized());   // Bottom right
-      ShootBullet(new Vector2(-1, 1).Normalized());  // Bottom left
-      ShootBullet(new Vector2(1, -1).Normalized());  // Top right
-      ShootBullet(new Vector2(-1, -1).Normalized()); // Top left
+      BossAttack(direction);
       break;
     }
   }
 
+  private void QuadShot(Vector2 direction) {
+    // Quad shot: 4 bullets in different diagonal directions
+    ShootBullet(direction.Rotated(Mathf.DegToRad(-30)));  // Far left bullet
+    ShootBullet(direction.Rotated(Mathf.DegToRad(-10)));  // Left bullet
+    ShootBullet(direction.Rotated(Mathf.DegToRad(10)));   // Right bullet
+    ShootBullet(direction.Rotated(Mathf.DegToRad(30)));   // Far right bullet
+  }
+
+  private void BossAttack(Vector2 direction) {
+    if (health > maxHealth / 2) {
+      ShootBullet(direction);
+      shootCooldown = 0.3f;
+    } else {
+      QuadShot(direction);
+      var bullet2 = ShootBullet(direction);
+      shootCooldown = 1f;
+      bullet2.Modulate = new Color(1, 1, 0); // yellow
+    }
+  }
+
   // Function to spawn a bullet in a given direction
-  private void ShootBullet(Vector2 direction) {
+  private Bullet2 ShootBullet(Vector2 direction) {
     var bullet = (Bullet2)BulletScene.Instantiate();
     bullet.Position = GlobalPosition;
-    bullet.Initialize(direction, true); 
+    bullet.Initialize(direction, true);
+    bullet.Modulate = new Color(1, 0, 0);
     GetParent().AddChild(bullet);
+    return bullet;
   }
 
   // Set different attributes based on the enemy type
   public void SetEnemyType(EnemyType type) {
-    var textureRect = GetNode<TextureRect>("TextureRect"); 
+    var textureRect = GetNode<TextureRect>("TextureRect");
     enemyType = type;
     // Modulate doesen't work because I think we need to do it on the sprite
     switch (enemyType) {
@@ -236,7 +249,7 @@ public partial class Enemy : CharacterBody2D {
       break;
 
       case EnemyType.Easy:
-      speed = 110f;
+      speed = 400f;
       maxHealth = 10;
       shootRange = 200f;
       shootCooldown = 2.5f;
@@ -244,26 +257,26 @@ public partial class Enemy : CharacterBody2D {
       break;
 
       case EnemyType.Medium:
-      speed = 120f;
-      maxHealth = 5;
-      shootRange = 250f;
-      shootCooldown = 2.0f;
+      speed = 220f;
+      maxHealth = 15;
+      shootRange = 300f;
+      shootCooldown = 1.5f;
       textureRect.SelfModulate = new Color(1, 1, 0); // Yellow
       break;
 
       case EnemyType.Hard:
-      speed = 130f;
-      maxHealth = 15;
-      shootRange = 300f;
-      shootCooldown = 1.5f;
+      speed = 220f;
+      maxHealth = 20;
+      shootRange = 250f;
+      shootCooldown = 1f;
       textureRect.SelfModulate = new Color(1, 0, 0); // Red
       break;
 
       case EnemyType.Boss:
-      speed = 100f;
+      speed = 200f;
       maxHealth = 40;
       shootRange = 400f;
-      shootCooldown = 1.0f;
+      shootCooldown = 0.3f;
       textureRect.SelfModulate = new Color(1, 0.5f, 1); // Pink
       break;
     }
