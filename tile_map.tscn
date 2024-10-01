@@ -64,6 +64,7 @@ physics_layer_0/collision_mask = 7
 sources/0 = SubResource("TileSetAtlasSource_wwt67")
 
 [node name="TileMap" type="TileMap"]
+scale = Vector2(2, 2)
 tile_set = SubResource("TileSet_ykdej")
 format = 2
 script = ExtResource("2_y4sv0")

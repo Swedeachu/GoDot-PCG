@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using static Enemy;
 
 public partial class PCG : TileMap {
@@ -17,26 +18,11 @@ public partial class PCG : TileMap {
   private float fillProbability = 0.45f;  // Initial fill rate for walls
   private int smoothingIterations = 5;    // How many times to smooth the map
 
-  // Biome 1 (cold biome)
-  private Vector2I iceWall = new Vector2I(3, 2);
-  private Vector2I snowFloor = new Vector2I(1, 0);
-
-  // Biome 2 (temperate biome kind of like a cave)
-  private Vector2I stoneWall = new Vector2I(2, 0);
-  private Vector2I dirtFloor = new Vector2I(0, 3);
-
-  // Biome 3 (hot biome)
-  private Vector2I sandFloor = new Vector2I(1, 3);
-  private Vector2I dryWall = new Vector2I(3, 0);
-
-  // Biome 4 (jungle/forest biome)
-  private Vector2I grassFloor = new Vector2I(2, 3);
-  private Vector2I grassWall = new Vector2I(2, 1);
+  // Biome tiles
+  private Dictionary<BiomeType, (Vector2I floorTile, Vector2I wallTile)> biomeTiles;
 
   // Noise settings for biome generation
   private float temperatureNoiseFrequency = 0.01f;  // Adjust for biome size
-
-  private Vector2 CellSize = new Vector2(32, 32);
 
   // The following have a 50% chance of spawning in a fittable floor part of the scene in each biome region (happens last in the generation process)
   public PackedScene enemyScene;
@@ -55,6 +41,10 @@ public partial class PCG : TileMap {
   // To protect rooms and corridors during smoothing
   private bool[,] protectedCells;
 
+  private MapGenerationDescriptor descriptor;
+
+  private List<(BiomeType biome, float minTemp, float maxTemp)> biomeTemperatureRanges;
+
   public override void _Ready() {
     Instance = this;
     // Initialize noise parameters
@@ -67,11 +57,33 @@ public partial class PCG : TileMap {
 
     occupied = new bool[chunkWidth, chunkHeight];
 
+    InitializeBiomeTiles();
+  }
+
+  public void Generate(MapGenerationDescriptor descriptor) {
+    this.descriptor = descriptor;
     InitializeProtectedCells();
     GenerateMap();
     SpawnPlayerInRandomRoom();
     SpawnEnemyWave(10);
     SpawnItemWave(10);
+  }
+
+  private void InitializeBiomeTiles() {
+    biomeTiles = new Dictionary<BiomeType, (Vector2I floorTile, Vector2I wallTile)>
+    {
+            // Biome 1 (cold biome, snow and ice)
+            { BiomeType.Cold, (new Vector2I(1, 0), new Vector2I(3, 2)) },
+
+            // Biome 2 (temperate biome kind of like a cave, dirt and rock)
+            { BiomeType.Temperate, (new Vector2I(0, 3), new Vector2I(2, 0)) },
+
+            // Biome 3 (hot biome, sand and ocean)
+            { BiomeType.Hot, (new Vector2I(1, 3), new Vector2I(3, 0)) },
+
+            // Biome 4 (jungle/forest biome)
+            { BiomeType.Jungle, (new Vector2I(2, 3), new Vector2I(2, 1)) }
+        };
   }
 
   // put the player in a random room, then go into each other room randomly and spawn stuff in them
@@ -228,7 +240,6 @@ public partial class PCG : TileMap {
     return false;  // No neighboring walls
   }
 
-
   private void InitializeProtectedCells() {
     protectedCells = new bool[chunkWidth, chunkHeight];
   }
@@ -251,6 +262,9 @@ public partial class PCG : TileMap {
       SmoothMap();
     }
 
+    // Compute biome temperature ranges based on the descriptor
+    ComputeBiomeTemperatureRanges();
+
     // Render the cave by placing tiles based on biomes
     RenderMap();
   }
@@ -261,7 +275,7 @@ public partial class PCG : TileMap {
       // Randomly select size and style
       int sizeCategory = rand.Next(3); // 0: small, 1: medium, 2: large
       int style = rand.Next(3); // 0: rounded corners, 1: rough edges, 2: interior columns
-      RoomShape shape = GetRandomRoomShape();
+      RoomShape shape = GetRandomRoomShape(descriptor.RoomShapeWeights);
       float rotation = 0;
 
       // Assign rotation for non-rectangle shapes
@@ -307,9 +321,17 @@ public partial class PCG : TileMap {
     }
   }
 
-  private RoomShape GetRandomRoomShape() {
-    Array shapes = Enum.GetValues(typeof(RoomShape));
-    return (RoomShape)shapes.GetValue(rand.Next(shapes.Length));
+  private RoomShape GetRandomRoomShape(Dictionary<RoomShape, float> weights) {
+    float totalWeight = weights.Values.Sum();
+    float randomValue = (float)(rand.NextDouble() * totalWeight);
+    foreach (var kvp in weights) {
+      if (randomValue < kvp.Value) {
+        return kvp.Key;
+      }
+      randomValue -= kvp.Value;
+    }
+    // Default return, in case of rounding errors
+    return weights.Keys.First();
   }
 
   private void CarveRoom(Room room) {
@@ -330,6 +352,35 @@ public partial class PCG : TileMap {
       CarveTriangle(room);
       break;
     }
+  }
+
+  private void ComputeBiomeTemperatureRanges() {
+    var sortedBiomes = descriptor.BiomeWeights.OrderBy(kvp => kvp.Key).ToList(); // Or some specific order
+    float totalWeight = descriptor.BiomeWeights.Values.Sum();
+
+    float cumulative = 0;
+    biomeTemperatureRanges = new List<(BiomeType biome, float minTemp, float maxTemp)>();
+
+    foreach (var kvp in sortedBiomes) {
+      float weight = kvp.Value / totalWeight;
+      float minProb = cumulative;
+      cumulative += weight;
+      float maxProb = cumulative;
+      // Map probabilities to temperature thresholds
+      float minTemp = minProb * 2 - 1; // Map [0,1] to [-1,1]
+      float maxTemp = maxProb * 2 - 1;
+      biomeTemperatureRanges.Add((kvp.Key, minTemp, maxTemp));
+    }
+  }
+
+  private BiomeType GetBiomeTypeFromTemperature(float temperature) {
+    foreach (var range in biomeTemperatureRanges) {
+      if (temperature >= range.minTemp && temperature < range.maxTemp) {
+        return range.biome;
+      }
+    }
+    // In case temperature == 1.0 (max value)
+    return biomeTemperatureRanges.Last().biome;
   }
 
   private void CarveRectangle(Room room) {
@@ -609,9 +660,9 @@ public partial class PCG : TileMap {
   }
 
   private void CarveCorridorTile(int x, int y) {
-    // Carve a 3x3 area centered at (x, y) to ensure wide corridors
-    for (int dx = -1; dx <= 1; dx++) {
-      for (int dy = -1; dy <= 1; dy++) {
+    // Carve a 4x4 area centered at (x, y) to ensure wide corridors
+    for (int dx = -2; dx <= 2; dx++) {
+      for (int dy = -2; dy <= 2; dy++) {
         int nx = x + dx;
         int ny = y + dy;
         if (nx >= 0 && nx < chunkWidth && ny >= 0 && ny < chunkHeight) {
@@ -668,35 +719,26 @@ public partial class PCG : TileMap {
         // Get the temperature value for this tile from the noise function
         float temperature = temperatureNoise.GetNoise2D(x, y);
 
-        // Determine the biome based on temperature
-        Vector2I floorTile = dirtFloor;  // Default temperate biome
-        Vector2I wallTile = stoneWall;   // Default wall
+        // Determine the biome based on temperature and descriptor
+        BiomeType biomeType = GetBiomeTypeFromTemperature(temperature);
 
-        // Create distinct biome zones based on temperature noise
-        if (temperature < -0.3f) {
-          // Cold biome
-          floorTile = snowFloor;
-          wallTile = iceWall;
-        } else if (temperature > 0.3f) {
-          // Hot biome
-          floorTile = sandFloor;
-          wallTile = dryWall;
-        } else if (temperature > 0 && temperature <= 0.3f) {
-          // Jungle/forest biome
-          floorTile = grassFloor;
-          wallTile = grassWall;
-        }
+        // Get the floor and wall tiles for the biome
+        var tiles = biomeTiles[biomeType];
+        Vector2I floorTile = tiles.floorTile;
+        Vector2I wallTile = tiles.wallTile;
 
         // Set the wall or floor tiles based on the biome
         if (mapGrid[x, y] == 0)  // Wall is 0
         {
           SetCell(0, new Vector2I(x, y), 0, wallTile);  // Set wall tile based on biome
-        } else { // Floor is 1
+        } else // Floor is 1
+          {
           SetCell(0, new Vector2I(x, y), 0, floorTile);  // Set floor tile based on biome
         }
       }
     }
   }
+
 }
 
 public enum RoomShape {
@@ -705,6 +747,13 @@ public enum RoomShape {
   Octagon,
   Hexagon,
   Triangle
+}
+
+public enum BiomeType {
+  Cold,
+  Temperate,
+  Hot,
+  Jungle
 }
 
 public class Room {
@@ -737,4 +786,9 @@ public class Room {
             Y <= other.Y + other.Height && Y + Height >= other.Y);
   }
 
+}
+
+public class MapGenerationDescriptor {
+  public Dictionary<RoomShape, float> RoomShapeWeights { get; set; }
+  public Dictionary<BiomeType, float> BiomeWeights { get; set; }
 }

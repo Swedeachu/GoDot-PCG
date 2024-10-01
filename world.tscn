@@ -5,9 +5,9 @@
 [ext_resource type="Script" path="res://ShakeAndBake.cs" id="3_03a7q"]
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_65fi8"]
-vertices = PackedVector2Array(13772, 5535, -7814, 4810, -7654, -4588, 14175, -4829)
+vertices = PackedVector2Array(8564, -721, 8564, 6872, -1401, 6550, -1580, -756)
 polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3)])
-outlines = Array[PackedVector2Array]([PackedVector2Array(-7664, -4598, -7825, 4820, 13782, 5546, 14186, -4840)])
+outlines = Array[PackedVector2Array]([PackedVector2Array(-1591, -767, -1411, 6560, 8574, 6883, 8574, -731)])
 source_geometry_group_name = &"navigation_polygon_source_group"
 
 [node name="World" type="Node2D"]

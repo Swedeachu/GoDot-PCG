@@ -1,5 +1,6 @@
 using Godot;
-using System;
+using System.Collections.Generic;
+using static PCG;
 
 public partial class ShakeAndBake : NavigationRegion2D {
 
@@ -29,7 +30,7 @@ public partial class ShakeAndBake : NavigationRegion2D {
       }
     }
 
-    Node world = root.GetNode("World");  
+    Node world = root.GetNode("World");
     foreach (Node child in world.GetChildren()) {
       if (child is Player player) {
         player.SetHealth(10); // back to max health
@@ -53,6 +54,29 @@ public partial class ShakeAndBake : NavigationRegion2D {
     pcg = (PCG)pcgScene.Instantiate();
     AddChild(pcg);
     pcg.Position = Vector2.Zero;
+
+    // Create a mixed descriptor that will make a balanced randomized world
+    MapGenerationDescriptor descriptor = new MapGenerationDescriptor {
+      RoomShapeWeights = new Dictionary<RoomShape, float>
+        {
+            { RoomShape.Rectangle, 0.25f },
+            { RoomShape.Circle, 0.25f },
+            { RoomShape.Hexagon, 0.25f },
+            { RoomShape.Octagon, 0.15f },
+            { RoomShape.Triangle, 0.10f }
+        },
+      BiomeWeights = new Dictionary<BiomeType, float>
+        {
+            { BiomeType.Cold, 0f },
+            { BiomeType.Temperate, 0.45f },
+            //{ BiomeType.Hot, 0.45f },
+            //{ BiomeType.Jungle, 0.45f }
+        }
+    };
+
+    // Generate the map with the descriptor
+    pcg.Generate(descriptor);
+
     BakeNavigationPolygon();
   }
 
