@@ -1,5 +1,6 @@
 using Godot;
-using System;
+using System.Collections.Generic;
+using static Item;
 
 public partial class Item : RigidBody2D {
 
@@ -55,4 +56,12 @@ public partial class Item : RigidBody2D {
     }
   }
 
+}
+
+public class ItemWaveDescriptor {
+  public Dictionary<ItemType, int> ItemCounts { get; set; }
+
+  public ItemWaveDescriptor() {
+    ItemCounts = new Dictionary<ItemType, int>();
+  }
 }

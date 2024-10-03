@@ -7,6 +7,7 @@ public partial class Player : CharacterBody2D {
 
   private int maxHealth = 10;
   private int health = 10;
+  private bool canBeHurt = true;
 
   private float originalSpeed = 300.0f;  // To store the player's original speed
   private bool tripleShotActive = false;  // Track if triple shot is active
@@ -143,6 +144,15 @@ public partial class Player : CharacterBody2D {
     }
   }
 
+  private async void ActivateInvincibilityFrames() {
+    GD.Print("I frames activated");
+    canBeHurt = false;
+
+    await ToSignal(GetTree().CreateTimer(1.0f), "timeout");  // Wait for 1 second
+    canBeHurt = true;
+    GD.Print("I frames ended");
+  }
+
   // Activate speed boost temporarily
   private async void ActivateSpeedBoost() {
     GD.Print("Speed boost activated!");
@@ -164,6 +174,11 @@ public partial class Player : CharacterBody2D {
   }
 
   public void Damage(int amount) {
+    if (!canBeHurt) {
+      GD.Print("player i frames blocking damage");
+      return;
+    }
+
     health -= amount;
 
     // Clamp the health to be at least 0
@@ -174,13 +189,17 @@ public partial class Player : CharacterBody2D {
 
     // Check if the enemy's health is 0 or below
     if (health <= 0) {
-      // Handle death...
       TelemetryManager.Instance.AddDeath(); // telemetry
-      Respawn();
+      TelemetryManager.Instance.Write();
+      TelemetryManager.Instance.Restart();
+      ShakeAndBake.Instance.Restart();
     }
+
+    // On getting hurt activate I frames
+    ActivateInvincibilityFrames();
   }
 
-  private void Respawn() {
+  public void Respawn() {
     health = maxHealth;
     healthBar.Value = health;
     if (PCG.Instance != null) {

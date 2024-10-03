@@ -1,0 +1,41 @@
+[gd_scene load_steps=4 format=3 uid="uid://csbyd4y2lbxco"]
+
+[ext_resource type="Texture2D" uid="uid://tabpi8gp2mwv" path="res://portal.png" id="1_asd4g"]
+[ext_resource type="Script" path="res://Portal.cs" id="1_uvpx5"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_d48rn"]
+radius = 17.1172
+
+[node name="Portal" type="RigidBody2D"]
+z_index = 10
+collision_layer = 2
+collision_mask = 3
+script = ExtResource("1_uvpx5")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(-2, 0)
+scale = Vector2(4, 4)
+shape = SubResource("CircleShape2D_d48rn")
+
+[node name="TextureRect" type="TextureRect" parent="."]
+offset_left = -130.0
+offset_top = -76.0
+offset_right = 217.0
+offset_bottom = 271.0
+scale = Vector2(0.747713, 0.433256)
+texture = ExtResource("1_asd4g")
+
+[node name="CPUParticles2D" type="CPUParticles2D" parent="."]
+position = Vector2(-15, -18)
+amount = 200
+randomness = 1.0
+emission_shape = 1
+emission_sphere_radius = 48.1
+gravity = Vector2(-200, 200)
+orbit_velocity_min = 1.0
+orbit_velocity_max = 1.0
+damping_min = 3.03
+damping_max = 3.03
+scale_amount_min = 2.0
+scale_amount_max = 2.0
+color = Color(1, 1, 0.0666667, 1)

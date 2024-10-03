@@ -19,6 +19,16 @@ public partial class TelemetryManager : Node2D {
     Instance = this;
   }
 
+  public void Restart() {
+    shotsFired = 0;
+    damageTaken = 0;
+    pickupsCollected = 0;
+    deathsSuffered = 0;
+    distanceTraveled = 0;
+    timeSpent = 0;
+    killsByType.Clear();
+  }
+
   public int GetTotalKills() {
     int count = 0;
     foreach (var pair in killsByType) {

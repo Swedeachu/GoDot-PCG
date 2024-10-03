@@ -14,6 +14,7 @@ bg_color = Color(1, 0, 0, 1)
 bg_color = Color(0, 1, 0, 1)
 
 [node name="Enemy" type="CharacterBody2D"]
+scale = Vector2(1.5, 1.5)
 collision_layer = 4
 script = ExtResource("1_cs6l1")
 

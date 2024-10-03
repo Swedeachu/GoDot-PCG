@@ -4,18 +4,19 @@
 [ext_resource type="Texture2D" uid="uid://dl3n3pe3h0mcf" path="res://speed.png" id="2_qeasj"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_4uw8d"]
+radius = 5.52268
 
 [node name="StaticBody2D" type="RigidBody2D"]
-scale = Vector2(1.6, 1.6)
+z_index = 10
 collision_layer = 2
 collision_mask = 3
 script = ExtResource("1_0jq2o")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+scale = Vector2(2, 2)
 shape = SubResource("CircleShape2D_4uw8d")
 
 [node name="TextureRect" type="TextureRect" parent="."]
-z_index = 10
 offset_left = -10.0
 offset_top = -8.0
 offset_right = 429.0

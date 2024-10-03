@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 
 public partial class Enemy : CharacterBody2D {
 
@@ -9,6 +10,19 @@ public partial class Enemy : CharacterBody2D {
     Medium,
     Hard,
     Boss
+  }
+
+  public static int killsThisRound = 0;
+  public static int neededKills = 0;
+
+  private PackedScene portalScene;
+
+  public class EnemyWaveDescriptor {
+    public Dictionary<EnemyType, int> EnemyCounts { get; set; }
+
+    public EnemyWaveDescriptor() {
+      EnemyCounts = new Dictionary<EnemyType, int>();
+    }
   }
 
   private Node2D target;
@@ -53,6 +67,7 @@ public partial class Enemy : CharacterBody2D {
     // Load the bullet scene
     BulletScene = GD.Load<PackedScene>("res://bullet2.tscn");
     itemScene = GD.Load<PackedScene>("res://item.tscn");
+    portalScene = GD.Load<PackedScene>("res://portal.tscn");
 
     FindPlayer();
   }
@@ -119,9 +134,13 @@ public partial class Enemy : CharacterBody2D {
       QueueFree();
       DropItem();
       TelemetryManager.Instance.AddKill(enemyType);
-      // every 10 kills spawn the boss
-      if (TelemetryManager.Instance.GetTotalKills() % 10 == 0) {
-        PCG.Instance.SpawnBoss();
+      killsThisRound++;
+      // if we hit the kill count spawn a teleported here to that can warp the player to the next level
+      if (killsThisRound >= neededKills) {
+        GD.Print("kill count reached");
+        var portal = (Portal)portalScene.Instantiate();
+        GetTree().Root.CallDeferred("add_child", portal);
+        portal.GlobalPosition = this.GlobalPosition; // maybe make sure this placement is better
       }
     }
   }
@@ -240,19 +259,19 @@ public partial class Enemy : CharacterBody2D {
     // Modulate doesen't work because I think we need to do it on the sprite
     switch (enemyType) {
       case EnemyType.Trivial:
-      speed = 100f;
+      speed = 250f;
       maxHealth = 5;
-      shootRange = 150f;
+      shootRange = 450f;
       shootCooldown = 3.0f;
-      textureRect.SelfModulate = new Color(1, 1, 1); // White (no modulation basically)
+      textureRect.SelfModulate = new Color(0, 1, 0); // Green
       break;
 
       case EnemyType.Easy:
-      speed = 400f;
+      speed = 350f;
       maxHealth = 10;
-      shootRange = 200f;
+      shootRange = 600f;
       shootCooldown = 2.5f;
-      textureRect.SelfModulate = new Color(0, 1, 0); // Green
+      textureRect.SelfModulate = new Color(0, 0, 1); // Blue
       break;
 
       case EnemyType.Medium:

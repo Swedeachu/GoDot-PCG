@@ -4,6 +4,11 @@ using System.Collections.Generic;
 using System.Linq;
 using static Enemy;
 
+public class MapGenerationDescriptor {
+  public Dictionary<RoomShape, float> RoomShapeWeights { get; set; }
+  public Dictionary<BiomeType, float> BiomeWeights { get; set; }
+}
+
 public partial class PCG : TileMap {
 
   public static PCG Instance { get; private set; }
@@ -16,7 +21,7 @@ public partial class PCG : TileMap {
   private int[,] mapGrid;  // Stores the cave map (1: floor, 0: wall)
 
   private float fillProbability = 0.45f;  // Initial fill rate for walls
-  private int smoothingIterations = 5;    // How many times to smooth the map
+  private int smoothingIterations = 4;    // How many times to smooth the map
 
   // Biome tiles
   private Dictionary<BiomeType, (Vector2I floorTile, Vector2I wallTile)> biomeTiles;
@@ -41,7 +46,9 @@ public partial class PCG : TileMap {
   // To protect rooms and corridors during smoothing
   private bool[,] protectedCells;
 
-  private MapGenerationDescriptor descriptor;
+  private MapGenerationDescriptor mapDescriptor;
+  private EnemyWaveDescriptor enemyWaveDescriptor;
+  private ItemWaveDescriptor itemWaveDescriptor;
 
   private List<(BiomeType biome, float minTemp, float maxTemp)> biomeTemperatureRanges;
 
@@ -60,13 +67,15 @@ public partial class PCG : TileMap {
     InitializeBiomeTiles();
   }
 
-  public void Generate(MapGenerationDescriptor descriptor) {
-    this.descriptor = descriptor;
+  public void Generate(MapGenerationDescriptor mapDescriptor, EnemyWaveDescriptor enemyWave, ItemWaveDescriptor itemWaveDescriptor) {
+    this.mapDescriptor = mapDescriptor;
+    this.enemyWaveDescriptor = enemyWave;
+    this.itemWaveDescriptor = itemWaveDescriptor;
     InitializeProtectedCells();
     GenerateMap();
     SpawnPlayerInRandomRoom();
-    SpawnEnemyWave(10);
-    SpawnItemWave(10);
+    SpawnEnemyWave();
+    SpawnItemWave();
   }
 
   private void InitializeBiomeTiles() {
@@ -119,62 +128,77 @@ public partial class PCG : TileMap {
     enemy.SetEnemyType(EnemyType.Boss);
   }
 
-  private void SpawnItemWave(int numberofItems) {
+  private void SpawnItemWave() {
     List<Room> eligibleRooms = new List<Room>(rooms);
 
-    for (int i = 0; i < numberofItems; i++) {
-      if (eligibleRooms.Count > 0) {
-        // Select a random room from the eligible rooms
-        Room room = eligibleRooms[rand.Next(eligibleRooms.Count)];
-        eligibleRooms.Remove(room); // don't want repeat rooms with multiple items
+    var itemCounts = itemWaveDescriptor.ItemCounts;
 
-        // Find a valid spawn position in the selected room
-        Vector2 spawnWorldPosition = FindSpawnPositionInRoom(room);
+    // Iterate through each item type in the descriptor
+    foreach (var entry in itemCounts) {
+      var itemType = entry.Key;
+      int count = entry.Value;
 
-        // Spawn item and set position
-        var item = (Item)itemScene.Instantiate();
-        GetTree().Root.CallDeferred("add_child", item);
-        item.GlobalPosition = spawnWorldPosition;
+      for (int i = 0; i < count; i++) {
+        if (eligibleRooms.Count > 0) {
+          // Select a random room from the eligible rooms
+          Room room = eligibleRooms[rand.Next(eligibleRooms.Count)];
+          eligibleRooms.Remove(room); // Don't want repeat rooms with multiple items
 
-        // Randomize item type
-        Item.ItemType type = (Item.ItemType)rand.Next(Enum.GetNames(typeof(Item.ItemType)).Length);
-        item.SetType(type);
-      } else {
-        GD.PrintErr("No eligible rooms available to spawn item.");
-        break;
+          // Find a valid spawn position in the selected room
+          Vector2 spawnWorldPosition = FindSpawnPositionInRoom(room);
+
+          // Spawn item and set position
+          var item = (Item)itemScene.Instantiate();
+          GetTree().Root.CallDeferred("add_child", item);
+          item.GlobalPosition = spawnWorldPosition;
+
+          // Set the item type based on the descriptor
+          item.SetType(itemType);
+        } else {
+          GD.PrintErr("No eligible rooms available to spawn item.");
+          break;
+        }
       }
     }
   }
 
-  private void SpawnEnemyWave(int numberOfEnemies) {
+  private void SpawnEnemyWave() {
     List<Room> eligibleRooms = new List<Room>(rooms);
     if (spawnRoom != null) {
       eligibleRooms.Remove(spawnRoom); // Remove the spawn room
     }
 
-    for (int i = 0; i < numberOfEnemies; i++) {
-      if (eligibleRooms.Count > 0) {
-        // Select a random room from the eligible rooms
-        Room room = eligibleRooms[rand.Next(eligibleRooms.Count)];
+    // Get the enemy wave descriptor
+    var enemyCounts = enemyWaveDescriptor.EnemyCounts;
 
-        // Find a valid spawn position in the selected room
-        Vector2 spawnWorldPosition = FindSpawnPositionInRoom(room);
+    // Iterate through each enemy type in the descriptor
+    foreach (var entry in enemyCounts) {
+      EnemyType enemyType = entry.Key;
+      int count = entry.Value;
 
-        // Spawn enemy and set position
-        var enemy = (Enemy)enemyScene.Instantiate();
-        GetTree().Root.CallDeferred("add_child", enemy);
-        enemy.GlobalPosition = spawnWorldPosition;
+      for (int i = 0; i < count; i++) {
+        if (eligibleRooms.Count > 0) {
+          // Select a random room from the eligible rooms
+          Room room = eligibleRooms[rand.Next(eligibleRooms.Count)];
 
-        // Randomize enemy type
-        EnemyType type = (EnemyType)rand.Next(Enum.GetNames(typeof(EnemyType)).Length);
-        if (type == EnemyType.Boss) type = EnemyType.Hard; // we don't want to spawn bosses just yet
-        enemy.SetEnemyType(type);
-      } else {
-        GD.PrintErr("No eligible rooms available to spawn enemies.");
-        break;
+          // Find a valid spawn position in the selected room
+          Vector2 spawnWorldPosition = FindSpawnPositionInRoom(room);
+
+          // Spawn enemy and set position
+          var enemy = (Enemy)enemyScene.Instantiate();
+          GetTree().Root.CallDeferred("add_child", enemy);
+          enemy.GlobalPosition = spawnWorldPosition;
+
+          enemy.SetEnemyType(enemyType);
+          Enemy.neededKills++; // increase needed kill count
+        } else {
+          GD.PrintErr("No eligible rooms available to spawn enemies.");
+          break;
+        }
       }
     }
   }
+
 
   private void SpawnEnemyInRoom(Room room) {
     var enemy = (Enemy)enemyScene.Instantiate();
@@ -275,7 +299,7 @@ public partial class PCG : TileMap {
       // Randomly select size and style
       int sizeCategory = rand.Next(3); // 0: small, 1: medium, 2: large
       int style = rand.Next(3); // 0: rounded corners, 1: rough edges, 2: interior columns
-      RoomShape shape = GetRandomRoomShape(descriptor.RoomShapeWeights);
+      RoomShape shape = GetRandomRoomShape(mapDescriptor.RoomShapeWeights);
       float rotation = 0;
 
       // Assign rotation for non-rectangle shapes
@@ -355,8 +379,8 @@ public partial class PCG : TileMap {
   }
 
   private void ComputeBiomeTemperatureRanges() {
-    var sortedBiomes = descriptor.BiomeWeights.OrderBy(kvp => kvp.Key).ToList(); // Or some specific order
-    float totalWeight = descriptor.BiomeWeights.Values.Sum();
+    var sortedBiomes = mapDescriptor.BiomeWeights.OrderBy(kvp => kvp.Key).ToList(); // Or some specific order
+    float totalWeight = mapDescriptor.BiomeWeights.Values.Sum();
 
     float cumulative = 0;
     biomeTemperatureRanges = new List<(BiomeType biome, float minTemp, float maxTemp)>();
@@ -786,9 +810,4 @@ public class Room {
             Y <= other.Y + other.Height && Y + Height >= other.Y);
   }
 
-}
-
-public class MapGenerationDescriptor {
-  public Dictionary<RoomShape, float> RoomShapeWeights { get; set; }
-  public Dictionary<BiomeType, float> BiomeWeights { get; set; }
 }
