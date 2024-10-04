@@ -16,6 +16,7 @@ public partial class PCG : TileMap {
   private FastNoiseLite noise = new FastNoiseLite();
   private FastNoiseLite temperatureNoise = new FastNoiseLite();
 
+  public int roomCount = 20; 
   private int chunkWidth = 200;
   private int chunkHeight = 200;
   private int[,] mapGrid;  // Stores the cave map (1: floor, 0: wall)
@@ -47,7 +48,7 @@ public partial class PCG : TileMap {
   private bool[,] protectedCells;
 
   private MapGenerationDescriptor mapDescriptor;
-  private EnemyWaveDescriptor enemyWaveDescriptor;
+  public EnemyWaveDescriptor enemyWaveDescriptor;
   private ItemWaveDescriptor itemWaveDescriptor;
 
   private List<(BiomeType biome, float minTemp, float maxTemp)> biomeTemperatureRanges;
@@ -162,7 +163,7 @@ public partial class PCG : TileMap {
     }
   }
 
-  private void SpawnEnemyWave() {
+  public void SpawnEnemyWave() {
     List<Room> eligibleRooms = new List<Room>(rooms);
     if (spawnRoom != null) {
       eligibleRooms.Remove(spawnRoom); // Remove the spawn room to avoid immediate ambushes
@@ -311,7 +312,6 @@ public partial class PCG : TileMap {
   }
 
   private void GenerateRooms() {
-    int roomCount = 20; // Increased number of rooms
     for (int i = 0; i < roomCount; i++) {
       // Randomly select size and style
       int sizeCategory = rand.Next(3); // 0: small, 1: medium, 2: large

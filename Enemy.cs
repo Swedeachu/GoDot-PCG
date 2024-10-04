@@ -348,7 +348,7 @@ public partial class Enemy : CharacterBody2D {
 
       case EnemyType.Boss:
       speed = 200f;
-      maxHealth = 400;
+      maxHealth = 150;
       shootRange = 400f;
       shootCooldown = 0.3f;
       Scale = new Vector2(3, 3);

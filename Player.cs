@@ -9,7 +9,7 @@ public partial class Player : CharacterBody2D {
   private bool canBeHurt = true;
 
   private float originalSpeed = 300.0f;  // To store the player's original speed
-  private bool tripleShotActive = false;  // Track if triple shot is active
+  public bool tripleShotActive = false;  // Track if triple shot is active
 
   public PackedScene BulletScene;
 

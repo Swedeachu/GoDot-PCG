@@ -35,9 +35,32 @@ public partial class ShakeAndBake : NavigationRegion2D {
   }
 
   public override void _Process(double delta) {
+    // good lord this is bad
+    if (Input.IsActionJustPressed("1")) {
+      level = 0;
+      Restart(false);
+    }
+    if (Input.IsActionJustPressed("2")) {
+      level = 1;
+      Restart(false);
+    }
+    if (Input.IsActionJustPressed("3")) {
+      level = 2;
+      Restart(false);
+    }
+    if (Input.IsActionJustPressed("4")) {
+      level = 3;
+      Restart(false);
+    }
+    if (Input.IsActionJustPressed("5")) {
+      level = 4;
+      Restart(false);
+    }
+
     // Detect if the "R" key is pressed
     if (Input.IsActionJustPressed("reset")) { // we need to go through and kill all nodes named Enemy
       Restart();
+      return;
     }
 
     // P key
@@ -104,41 +127,57 @@ public partial class ShakeAndBake : NavigationRegion2D {
     Dictionary<RoomShape, float> roomShapeWeights = new Dictionary<RoomShape, float>();
     Dictionary<BiomeType, float> biomeWeights = new Dictionary<BiomeType, float>();
 
-    // Set room shape weights (common for all levels)
-    roomShapeWeights = new Dictionary<RoomShape, float> {
-        { RoomShape.Rectangle, 0.25f },
-        { RoomShape.Circle, 0.25f },
-        { RoomShape.Hexagon, 0.25f },
-        { RoomShape.Octagon, 0.15f },
-        { RoomShape.Triangle, 0.10f }
-    };
-
     // Initialize biome weights dictionary
     biomeWeights = new Dictionary<BiomeType, float>();
 
     // Add to biome weights based on the level
     switch (level) {
       case 0:
+      roomShapeWeights = new Dictionary<RoomShape, float> {
+        { RoomShape.Circle, 1 },
+      };
       biomeWeights.Add(BiomeType.Temperate, 0.45f); // cave
+      pcg.roomCount = 10;
       break;
 
       case 1:
+      roomShapeWeights = new Dictionary<RoomShape, float> {
+        { RoomShape.Hexagon, 1 },
+      };
       biomeWeights.Add(BiomeType.Jungle, 0.25f); // forest basically
+      pcg.roomCount = 15;
       break;
 
       case 2:
+      roomShapeWeights = new Dictionary<RoomShape, float> {
+        { RoomShape.Octagon, 0.50f },
+        { RoomShape.Circle, 0.50f },
+      };
       biomeWeights.Add(BiomeType.Hot, 0.45f); // desert/ocean
+      pcg.roomCount = 20;
       break;
 
       case 3:
+      roomShapeWeights = new Dictionary<RoomShape, float> {
+        { RoomShape.Triangle, 4 },
+      };
       biomeWeights.Add(BiomeType.Cold, 0.25f); // ice
+      pcg.roomCount = 30;
       break;
 
       case 4:
-      biomeWeights.Add(BiomeType.Jungle, 0.25f); // Jungle
+      biomeWeights.Add(BiomeType.Jungle, 0.50f); // Jungle
+      biomeWeights.Add(BiomeType.Temperate, 0.25f); // cave
+      biomeWeights.Add(BiomeType.Hot, 0.25f); // Desert
+
       roomShapeWeights = new Dictionary<RoomShape, float> {
-        { RoomShape.Circle, 1 },
-    };
+        { RoomShape.Rectangle, 0.25f },
+        { RoomShape.Circle, 0.25f },
+        { RoomShape.Hexagon, 0.25f },
+        { RoomShape.Octagon, 0.15f },
+        { RoomShape.Triangle, 0.10f }
+      };
+      pcg.roomCount = 40;
       break;
     }
 
@@ -246,11 +285,39 @@ public partial class ShakeAndBake : NavigationRegion2D {
       DashUnlocked();
     }
 
+    if (enemy.enemyType == EnemyType.Boss) {
+      GD.Print("crazy mode");
+      UltraTime();
+    }
+
     // if we hit the kill count spawn a teleported here to that can warp the player to the next level
     if (killsThisRound >= neededKills) {
       GD.Print("kill count reached");
       MakePortalToNewLevel(enemy.GlobalPosition);
     }
+  }
+
+  private void UltraTime() {
+    Node root = GetTree().Root;
+
+    Node world = root.GetNode("World");
+    foreach (Node child in world.GetChildren()) {
+      if (child is Player player) {
+        player.SetHealth(100);
+        player.Scale = new Vector2(3, 3);
+        player.Speed = 600;
+        player.tripleShotActive = true;
+        var textureRect = player.GetNode<TextureRect>("TextureRect");
+        textureRect.SelfModulate = new Color(1, 0.5f, 1); // Pink
+        break;
+      }
+    }
+
+    // now spawn a shit ton of easy guys to mow down
+    var enemyWaveDescriptor = new EnemyWaveDescriptor();
+    enemyWaveDescriptor.EnemyCounts.Add(EnemyType.Trivial, 200);
+    pcg.enemyWaveDescriptor = enemyWaveDescriptor;
+    pcg.SpawnEnemyWave();
   }
 
   private void DashUnlocked() {
