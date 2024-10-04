@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3 uid="uid://du4buhxddkwbf"]
+
+[ext_resource type="Script" path="res://CustomText.cs" id="1_0dvw6"]
+
+[node name="Root" type="Node2D"]
+
+[node name="TextLabel" type="Label" parent="."]
+offset_right = 40.0
+offset_bottom = 23.0
+text = "Text Test"
+script = ExtResource("1_0dvw6")

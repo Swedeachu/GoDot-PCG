@@ -2,7 +2,6 @@ using Godot;
 using System;
 
 public partial class Player : CharacterBody2D {
-
   public float Speed = 300.0f;
 
   private int maxHealth = 10;
@@ -16,6 +15,15 @@ public partial class Player : CharacterBody2D {
 
   private ProgressBar healthBar;
 
+  // Dash parameters
+  public bool allowDash { get; set; }
+  private bool isDashing = false;
+  private bool canDash = true;
+  private float dashSpeed = 800.0f;       // Speed during dash
+  private float dashDuration = 0.2f;      // Duration of dash in seconds
+  private float dashCooldown = 0.4f;      // Cooldown time before the next dash
+  private Vector2 dashDirection;
+
   public override void _Ready() {
     // Load the bullet scene
     BulletScene = GD.Load<PackedScene>("res://bullet2.tscn");
@@ -26,15 +34,27 @@ public partial class Player : CharacterBody2D {
     // Initialize the health bar
     healthBar.MaxValue = maxHealth;
     healthBar.Value = health;
+    allowDash = false;
   }
 
   public override void _PhysicsProcess(double delta) {
+    if (isDashing) {
+      // Dash movement
+      Velocity = dashDirection * dashSpeed;
+      MoveAndSlide();
+      return; // Skip other movements while dashing
+    }
+
     Movement(delta);
     RotateTowardsMouse();
 
     // Check for shooting
     if (Input.IsActionJustPressed("shoot")) {
       Shoot();
+    }
+
+    if (Input.IsActionJustPressed("dash")) {
+      Dash();
     }
 
     if (Input.IsActionJustPressed("teleport")) {
@@ -51,6 +71,41 @@ public partial class Player : CharacterBody2D {
       // Set the GlobalPosition of the node to the mouse's world position
       GlobalPosition = mouseWorldPos;
     }
+  }
+
+  private async void Dash() {
+    if (!canDash || isDashing || !allowDash) {
+      return;
+    }
+
+    // Start dash
+    isDashing = true;
+    canDash = false;
+
+    // Determine dash direction
+    // If player is moving, dash in movement direction
+    // Otherwise, dash in the direction the player is facing (rotation)
+    Vector2 inputDirection = Input.GetVector("move_left", "move_right", "move_up", "move_down");
+    if (inputDirection != Vector2.Zero) {
+      dashDirection = inputDirection.Normalized();
+    } else {
+      dashDirection = new Vector2(Mathf.Cos(Rotation), Mathf.Sin(Rotation)).Normalized();
+    }
+
+    // Wait for dash duration
+    await ToSignal(GetTree().CreateTimer(dashDuration), "timeout");
+
+    // End dash
+    isDashing = false;
+
+    // Reset velocity
+    Velocity = Vector2.Zero;
+
+    // Start cooldown timer
+    await ToSignal(GetTree().CreateTimer(dashCooldown), "timeout");
+
+    // Allow dashing again
+    canDash = true;
   }
 
   private Vector2 previousPosition;
@@ -175,7 +230,7 @@ public partial class Player : CharacterBody2D {
 
   public void Damage(int amount) {
     if (!canBeHurt) {
-      GD.Print("player i frames blocking damage");
+      GD.Print("Player invincibility frames blocking damage");
       return;
     }
 
@@ -187,7 +242,7 @@ public partial class Player : CharacterBody2D {
     // Update the progress bar to reflect the current health
     healthBar.Value = health;
 
-    // Check if the enemy's health is 0 or below
+    // Check if the player's health is 0 or below
     if (health <= 0) {
       TelemetryManager.Instance.AddDeath(); // telemetry
       TelemetryManager.Instance.Write();
@@ -195,7 +250,7 @@ public partial class Player : CharacterBody2D {
       ShakeAndBake.Instance.Restart();
     }
 
-    // On getting hurt activate I frames
+    // On getting hurt activate invincibility frames
     ActivateInvincibilityFrames();
   }
 

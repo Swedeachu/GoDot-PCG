@@ -41,9 +41,11 @@ public partial class TelemetryManager : Node2D {
     // Update time spent
     timeSpent += delta;
     // I guess for now press space to log?
+    /*
     if (Input.IsActionJustPressed("space")) {
       Write();
     }
+    */
   }
 
   public void AddShotFired() { shotsFired++; }

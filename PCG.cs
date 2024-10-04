@@ -165,8 +165,15 @@ public partial class PCG : TileMap {
   private void SpawnEnemyWave() {
     List<Room> eligibleRooms = new List<Room>(rooms);
     if (spawnRoom != null) {
-      eligibleRooms.Remove(spawnRoom); // Remove the spawn room
+      eligibleRooms.Remove(spawnRoom); // Remove the spawn room to avoid immediate ambushes
     }
+
+    // Define the minimum distance required between the player's spawn room and enemy spawn rooms
+    float minimumDistance = 50.0f;
+
+    // Filter eligible rooms to ensure they are far away from the player's spawn room
+    eligibleRooms = eligibleRooms.FindAll(room => GetRoomDistance(room, spawnRoom) >= minimumDistance);
+    GD.Print(eligibleRooms.Count + " rooms possible to spawn enemies in");
 
     // Get the enemy wave descriptor
     var enemyCounts = enemyWaveDescriptor.EnemyCounts;
@@ -190,7 +197,6 @@ public partial class PCG : TileMap {
           enemy.GlobalPosition = spawnWorldPosition;
 
           enemy.SetEnemyType(enemyType);
-          Enemy.neededKills++; // increase needed kill count
         } else {
           GD.PrintErr("No eligible rooms available to spawn enemies.");
           break;
@@ -198,7 +204,6 @@ public partial class PCG : TileMap {
       }
     }
   }
-
 
   private void SpawnEnemyInRoom(Room room) {
     var enemy = (Enemy)enemyScene.Instantiate();
@@ -237,6 +242,18 @@ public partial class PCG : TileMap {
     }
 
     return spawnWorldPosition;
+  }
+
+  // Helper method to calculate the distance between two rooms
+  private float GetRoomDistance(Room roomA, Room roomB) {
+    if (roomA == null || roomB == null) {
+      return float.MaxValue; // If either room is null, return maximum possible distance
+    }
+
+    // Calculate the Euclidean distance between the center points of the two rooms
+    float distanceX = roomA.CenterX - roomB.CenterX;
+    float distanceY = roomA.CenterY - roomB.CenterY;
+    return Mathf.Sqrt(distanceX * distanceX + distanceY * distanceY);
   }
 
   private bool IsNextToWall(int x, int y) {

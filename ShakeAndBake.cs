@@ -8,19 +8,21 @@ public partial class ShakeAndBake : NavigationRegion2D {
 
   private PCG pcg;
   private PackedScene pcgScene;
+  private PackedScene portalScene;
 
   public int level = 0;
 
   public static ShakeAndBake Instance { get; private set; }
 
   public void Restart(bool restartLevel = true) {
-    if (restartLevel) level = 0; 
+    if (restartLevel) level = 0;
     Enemy.killsThisRound = 0;
     Enemy.neededKills = 0;
     var player = KillActorsAndGetPlayer();
     ReplaceTileMap();
     if (player != null) {
       player.Respawn();
+      if (restartLevel) player.allowDash = false;
     }
   }
 
@@ -28,6 +30,7 @@ public partial class ShakeAndBake : NavigationRegion2D {
     // Load the PCG scene once and reuse it when needed
     pcgScene = (PackedScene)ResourceLoader.Load("res://tile_map.tscn");
     Instance = this;
+    portalScene = GD.Load<PackedScene>("res://portal.tscn");
     GenerateNewTileMap();
   }
 
@@ -35,6 +38,19 @@ public partial class ShakeAndBake : NavigationRegion2D {
     // Detect if the "R" key is pressed
     if (Input.IsActionJustPressed("reset")) { // we need to go through and kill all nodes named Enemy
       Restart();
+    }
+
+    // P key
+    if (Input.IsActionJustPressed("portal")) {
+      Vector2 mouseScreenPos = GetViewport().GetMousePosition();
+
+      // Get the screen transform and canvas transform and invert them
+      Transform2D screenTransform = GetViewport().GetScreenTransform();
+      Transform2D canvasTransform = GetCanvasTransform();
+
+      // Calculate the world position by applying the inverse of the transforms to the screen position
+      Vector2 mouseWorldPos = (screenTransform * canvasTransform).AffineInverse() * mouseScreenPos;
+      MakePortalToNewLevel(mouseWorldPos);
     }
   }
 
@@ -117,6 +133,13 @@ public partial class ShakeAndBake : NavigationRegion2D {
       case 3:
       biomeWeights.Add(BiomeType.Cold, 0.25f); // ice
       break;
+
+      case 4:
+      biomeWeights.Add(BiomeType.Jungle, 0.25f); // Jungle
+      roomShapeWeights = new Dictionary<RoomShape, float> {
+        { RoomShape.Circle, 1 },
+    };
+      break;
     }
 
     // Create and return the descriptor with the configured weights
@@ -151,9 +174,12 @@ public partial class ShakeAndBake : NavigationRegion2D {
       break;
 
       case 3:
-      // Add harder enemies with a boss
+      // Add harder enemies 
       enemyWaveDescriptor.EnemyCounts.Add(EnemyType.Medium, 5);
       enemyWaveDescriptor.EnemyCounts.Add(EnemyType.Hard, 7);
+      break;
+
+      case 4:
       enemyWaveDescriptor.EnemyCounts.Add(EnemyType.Boss, 1);
       break;
 
@@ -211,8 +237,52 @@ public partial class ShakeAndBake : NavigationRegion2D {
     Restart(false);
   }
 
+  public void HandleKill(Enemy enemy) {
+    TelemetryManager.Instance.AddKill(enemy.enemyType);
+    killsThisRound++;
+
+    if (level == 0 && killsThisRound == 5) {
+      GD.Print("dash unlocked");
+      DashUnlocked();
+    }
+
+    // if we hit the kill count spawn a teleported here to that can warp the player to the next level
+    if (killsThisRound >= neededKills) {
+      GD.Print("kill count reached");
+      MakePortalToNewLevel(enemy.GlobalPosition);
+    }
+  }
+
+  private void DashUnlocked() {
+    Node root = GetTree().Root;
+
+    Node world = root.GetNode("World");
+    foreach (Node child in world.GetChildren()) {
+      if (child is Player player) {
+        player.allowDash = true;
+        ShowFloatingText("Dash Unlocked! (space)", new Color(1, 0, 0), player.GlobalPosition);
+        break;
+      }
+    }
+  }
+
+  private void ShowFloatingText(string text, Color color, Vector2 position) {
+    GD.Print("showing text: " + text);
+    PackedScene floatingTextScene = (PackedScene)ResourceLoader.Load("res://textPrefab.tscn");
+    Node2D floatingText = (Node2D)floatingTextScene.Instantiate();
+    GetTree().Root.AddChild(floatingText); // or add it to a specific part of your scene
+    CustomText textNode = (CustomText)floatingText.GetNode("TextLabel");
+    textNode.Text = text;
+    textNode.Modulate = color;
+    floatingText.VisibilityLayer = 10;
+    floatingText.GlobalPosition = position;
+    floatingText.Scale = new Vector2(3, 3);
+  }
+
   public void MakePortalToNewLevel(Vector2 position) {
-    // colliding with the portal should call LevelUp()
+    var portal = (Portal)portalScene.Instantiate();
+    GetTree().Root.CallDeferred("add_child", portal);
+    portal.GlobalPosition = position;
   }
 
 }

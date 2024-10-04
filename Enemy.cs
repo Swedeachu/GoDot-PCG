@@ -15,8 +15,6 @@ public partial class Enemy : CharacterBody2D {
   public static int killsThisRound = 0;
   public static int neededKills = 0;
 
-  private PackedScene portalScene;
-
   public class EnemyWaveDescriptor {
     public Dictionary<EnemyType, int> EnemyCounts { get; set; }
 
@@ -43,12 +41,19 @@ public partial class Enemy : CharacterBody2D {
   private float timeSinceLastShot = 0f;
 
   // Enemy type
-  private EnemyType enemyType;
+  public EnemyType enemyType;
 
   public PackedScene BulletScene;
   public PackedScene itemScene;
 
   private RandomNumberGenerator rand = new RandomNumberGenerator();
+
+  // Dash-related variables for Boss
+  private bool isDashing = false;
+  private float dashSpeed = 400f; // Increased speed during dash
+  private float dashDuration = 0.5f; // Duration of dash in seconds
+  private float dashCooldown = 5f; // Cooldown between dashes in seconds
+  private float timeSinceLastDash = 0f; // Timer to track cooldown
 
   public override void _Ready() {
     // Get the NavigationAgent2D from the scene tree
@@ -67,19 +72,60 @@ public partial class Enemy : CharacterBody2D {
     // Load the bullet scene
     BulletScene = GD.Load<PackedScene>("res://bullet2.tscn");
     itemScene = GD.Load<PackedScene>("res://item.tscn");
-    portalScene = GD.Load<PackedScene>("res://portal.tscn");
+    Enemy.neededKills++; // increase needed kill count
 
     FindPlayer();
   }
 
   public override void _PhysicsProcess(double delta) {
-    Vector2 direction = Vector2.Zero;
+    // Update dash timers
+    if (enemyType == EnemyType.Boss) {
+      timeSinceLastDash += (float)delta;
 
-    // Get the next position along the path and calculate the direction
-    direction = (navigationAgent.GetNextPathPosition() - GlobalPosition).Normalized();
+      if (isDashing) {
+        // Continue dashing
+        Velocity = Velocity.Normalized() * dashSpeed;
+        dashDuration -= (float)delta;
+        if (dashDuration <= 0f) {
+          isDashing = false;
+          dashDuration = 0.5f; // Reset dash duration
+        }
+      } else {
+        // Regular movement
+        Vector2 direction = Vector2.Zero;
 
-    // Apply velocity smoothing using linear interpolation (lerp)
-    Velocity = Velocity.Lerp(direction * speed, acceleration * (float)delta);
+        // Get the next position along the path and calculate the direction
+        Vector2 nextPathPos = navigationAgent.GetNextPathPosition();
+        if (nextPathPos != Vector2.Zero) {
+          direction = (nextPathPos - GlobalPosition).Normalized();
+        }
+
+        // Apply velocity smoothing using linear interpolation (lerp)
+        Velocity = Velocity.Lerp(direction * speed, acceleration * (float)delta);
+
+        // Decide randomly to dash
+        // For example, 20% chance to dash every second
+        if (timeSinceLastDash >= dashCooldown) {
+          float dashChance = 0.2f; // 20% chance
+          rand.Randomize();
+          if (rand.Randf() <= dashChance) {
+            InitiateDash(direction);
+          }
+        }
+      }
+    } else {
+      // Non-Boss enemy movement logic
+      Vector2 direction = Vector2.Zero;
+
+      // Get the next position along the path and calculate the direction
+      Vector2 nextPathPos = navigationAgent.GetNextPathPosition();
+      if (nextPathPos != Vector2.Zero) {
+        direction = (nextPathPos - GlobalPosition).Normalized();
+      }
+
+      // Apply velocity smoothing using linear interpolation (lerp)
+      Velocity = Velocity.Lerp(direction * speed, acceleration * (float)delta);
+    }
 
     // Move the enemy using MoveAndSlide()
     MoveAndSlide();
@@ -131,17 +177,9 @@ public partial class Enemy : CharacterBody2D {
 
     // Check if the enemy's health is 0 or below
     if (health <= 0) {
-      QueueFree();
       DropItem();
-      TelemetryManager.Instance.AddKill(enemyType);
-      killsThisRound++;
-      // if we hit the kill count spawn a teleported here to that can warp the player to the next level
-      if (killsThisRound >= neededKills) {
-        GD.Print("kill count reached");
-        var portal = (Portal)portalScene.Instantiate();
-        GetTree().Root.CallDeferred("add_child", portal);
-        portal.GlobalPosition = this.GlobalPosition; // maybe make sure this placement is better
-      }
+      ShakeAndBake.Instance.HandleKill(this);
+      QueueFree();
     }
   }
 
@@ -207,7 +245,7 @@ public partial class Enemy : CharacterBody2D {
       break;
 
       case EnemyType.Medium:
-      // Double shot too but its faster
+      // Double shot too but it's faster
       ShootBullet(direction.Rotated(Mathf.DegToRad(-15)));  // Left bullet
       ShootBullet(direction.Rotated(Mathf.DegToRad(15)));   // Right bullet
       break;
@@ -242,7 +280,22 @@ public partial class Enemy : CharacterBody2D {
     }
   }
 
-  // Function to spawn a bullet in a given direction
+  /// <summary>
+  /// Initiates a dash towards the specified direction.
+  /// </summary>
+  /// <param name="direction">The direction vector to dash towards.</param>
+  private void InitiateDash(Vector2 direction) {
+    isDashing = true;
+    Velocity = direction.Normalized() * dashSpeed;
+    timeSinceLastDash = 0f;
+    GD.Print("Boss is dashing!");
+  }
+
+  /// <summary>
+  /// Function to spawn a bullet in a given direction.
+  /// </summary>
+  /// <param name="direction">The direction to shoot the bullet towards.</param>
+  /// <returns>The instantiated Bullet2 object.</returns>
   private Bullet2 ShootBullet(Vector2 direction) {
     var bullet = (Bullet2)BulletScene.Instantiate();
     bullet.Position = GlobalPosition;
@@ -252,11 +305,14 @@ public partial class Enemy : CharacterBody2D {
     return bullet;
   }
 
-  // Set different attributes based on the enemy type
+  /// <summary>
+  /// Sets different attributes based on the enemy type.
+  /// </summary>
+  /// <param name="type">The type of enemy to set.</param>
   public void SetEnemyType(EnemyType type) {
     var textureRect = GetNode<TextureRect>("TextureRect");
     enemyType = type;
-    // Modulate doesen't work because I think we need to do it on the sprite
+    // Modulate doesn't work because I think we need to do it on the sprite
     switch (enemyType) {
       case EnemyType.Trivial:
       speed = 250f;
@@ -292,9 +348,10 @@ public partial class Enemy : CharacterBody2D {
 
       case EnemyType.Boss:
       speed = 200f;
-      maxHealth = 40;
+      maxHealth = 400;
       shootRange = 400f;
       shootCooldown = 0.3f;
+      Scale = new Vector2(3, 3);
       textureRect.SelfModulate = new Color(1, 0.5f, 1); // Pink
       break;
     }
