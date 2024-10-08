@@ -12,6 +12,8 @@ public partial class ShakeAndBake : NavigationRegion2D {
 
   public int level = 0;
 
+  public static List<Node2D> iShouldntExistList = new List<Node2D>();
+
   public static ShakeAndBake Instance { get; private set; }
 
   public void Restart(bool restartLevel = true) {
@@ -82,11 +84,21 @@ public partial class ShakeAndBake : NavigationRegion2D {
     Node root = GetTree().Root;
     Player plr = null;
 
+    /*
     foreach (Node child in root.GetChildren()) {
-      if (child is Enemy || child is Item || child is Portal) {
+      GD.Print("hit: " + child.Name);
+      if (child is Enemy || child is Item || child is Portal || child.Name == "marker") {
         child.QueueFree();
       }
     }
+    */
+
+    // this is great, assuming we manage this list properly and add/remove to it during gameplay
+    foreach (var child in iShouldntExistList) {
+      child.QueueFree();
+      GD.Print("deleting from list: " + child.Name);
+    }
+    iShouldntExistList.Clear();
 
     Node world = root.GetNode("World");
     foreach (Node child in world.GetChildren()) {
@@ -303,6 +315,7 @@ public partial class ShakeAndBake : NavigationRegion2D {
     Node world = root.GetNode("World");
     foreach (Node child in world.GetChildren()) {
       if (child is Player player) {
+        player.SetMaxHealth(100);
         player.SetHealth(100);
         player.Scale = new Vector2(3, 3);
         player.Speed = 600;

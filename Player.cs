@@ -14,6 +14,7 @@ public partial class Player : CharacterBody2D {
   public PackedScene BulletScene;
 
   private ProgressBar healthBar;
+  private Label healthLabel;
 
   // Dash parameters
   public bool allowDash { get; set; }
@@ -30,11 +31,14 @@ public partial class Player : CharacterBody2D {
 
     // Get the ProgressBar node
     healthBar = GetNode<ProgressBar>("ProgressBar");
+    healthLabel = GetNode<Label>("Label");
 
     // Initialize the health bar
     healthBar.MaxValue = maxHealth;
     healthBar.Value = health;
     allowDash = false;
+
+    healthLabel.Text = health.ToString() + " HP";
   }
 
   public override void _PhysicsProcess(double delta) {
@@ -242,6 +246,8 @@ public partial class Player : CharacterBody2D {
     // Update the progress bar to reflect the current health
     healthBar.Value = health;
 
+    healthLabel.Text = health.ToString() + " HP";
+
     // Check if the player's health is 0 or below
     if (health <= 0) {
       TelemetryManager.Instance.AddDeath(); // telemetry
@@ -265,6 +271,9 @@ public partial class Player : CharacterBody2D {
   public void SetHealth(int value) {
     this.health = value;
     healthBar.Value = health;
+    healthLabel.Text = health.ToString() + " HP";
   }
+
+  public void SetMaxHealth(int value) { this.maxHealth = value; }
 
 }

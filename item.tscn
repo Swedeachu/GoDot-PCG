@@ -4,7 +4,6 @@
 [ext_resource type="Texture2D" uid="uid://dl3n3pe3h0mcf" path="res://speed.png" id="2_qeasj"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_4uw8d"]
-radius = 5.52268
 
 [node name="StaticBody2D" type="RigidBody2D"]
 z_index = 10
@@ -17,9 +16,9 @@ scale = Vector2(2, 2)
 shape = SubResource("CircleShape2D_4uw8d")
 
 [node name="TextureRect" type="TextureRect" parent="."]
-offset_left = -10.0
-offset_top = -8.0
-offset_right = 429.0
-offset_bottom = 428.0
-scale = Vector2(0.045148, 0.0367405)
+offset_left = -22.0
+offset_top = -19.0
+offset_right = 417.0
+offset_bottom = 417.0
+scale = Vector2(0.100157, 0.0833716)
 texture = ExtResource("2_qeasj")

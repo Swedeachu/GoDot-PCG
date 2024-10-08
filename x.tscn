@@ -1,0 +1,15 @@
+[gd_scene load_steps=2 format=3 uid="uid://c86yu4cxchw4v"]
+
+[ext_resource type="Texture2D" uid="uid://bpfuddoxm04vq" path="res://x.png" id="1_18mlb"]
+
+[node name="X" type="Node2D"]
+z_index = 5
+scale = Vector2(0.25, 0.25)
+
+[node name="TextureRect" type="TextureRect" parent="."]
+offset_left = -56.0
+offset_top = -48.0
+offset_right = 2199.0
+offset_bottom = 2206.0
+scale = Vector2(0.0503677, 0.0451688)
+texture = ExtResource("1_18mlb")

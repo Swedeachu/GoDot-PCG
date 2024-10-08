@@ -23,6 +23,8 @@ public partial class Enemy : CharacterBody2D {
     }
   }
 
+  private bool alive = true;
+
   private Node2D target;
 
   // Speed and acceleration variables
@@ -33,6 +35,7 @@ public partial class Enemy : CharacterBody2D {
   private NavigationAgent2D navigationAgent;
 
   private ProgressBar healthBar;
+  private Label healthLabel;
 
   private int maxHealth;
   private int health;
@@ -45,6 +48,7 @@ public partial class Enemy : CharacterBody2D {
 
   public PackedScene BulletScene;
   public PackedScene itemScene;
+  public PackedScene xScene;
 
   private RandomNumberGenerator rand = new RandomNumberGenerator();
 
@@ -63,17 +67,20 @@ public partial class Enemy : CharacterBody2D {
 
     // Get the ProgressBar node
     healthBar = GetNode<ProgressBar>("ProgressBar");
+    healthLabel = GetNode<Label>("Label");  
 
     // Initialize the health bar
     health = maxHealth;
     healthBar.MaxValue = maxHealth;
     healthBar.Value = health;
+    healthLabel.Text = health.ToString() + " HP";
 
     // Load the bullet scene
     BulletScene = GD.Load<PackedScene>("res://bullet2.tscn");
     itemScene = GD.Load<PackedScene>("res://item.tscn");
+    xScene = GD.Load<PackedScene>("res://x.tscn");
     Enemy.neededKills++; // increase needed kill count
-
+    ShakeAndBake.iShouldntExistList.Add(this);
     FindPlayer();
   }
 
@@ -167,6 +174,8 @@ public partial class Enemy : CharacterBody2D {
   }
 
   public void Damage(int amount) {
+    if(!alive) return;
+
     health -= amount;
 
     // Clamp the health to be at least 0
@@ -174,13 +183,25 @@ public partial class Enemy : CharacterBody2D {
 
     // Update the progress bar to reflect the current health
     healthBar.Value = health;
+    healthLabel.Text = health.ToString() + " HP";
 
     // Check if the enemy's health is 0 or below
     if (health <= 0) {
+      alive = false;
+      DropDead();
       DropItem();
       ShakeAndBake.Instance.HandleKill(this);
+      ShakeAndBake.iShouldntExistList.Remove(this);
       QueueFree();
     }
+  }
+
+  private void DropDead() {
+    var marker = (Node2D)xScene.Instantiate();
+    GetTree().Root.CallDeferred("add_child", marker);
+    marker.Name = "marker";
+    marker.GlobalPosition = GlobalPosition;
+    ShakeAndBake.iShouldntExistList.Add(marker);
   }
 
   // Random chance of dropping an item based on enemy difficulty level

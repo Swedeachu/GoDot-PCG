@@ -16,7 +16,7 @@ public partial class PCG : TileMap {
   private FastNoiseLite noise = new FastNoiseLite();
   private FastNoiseLite temperatureNoise = new FastNoiseLite();
 
-  public int roomCount = 20; 
+  public int roomCount = 20;
   private int chunkWidth = 200;
   private int chunkHeight = 200;
   private int[,] mapGrid;  // Stores the cave map (1: floor, 0: wall)
@@ -43,6 +43,7 @@ public partial class PCG : TileMap {
   private List<Room> rooms = new List<Room>();
 
   private Room spawnRoom;
+  Vector2 spawnWorldPosition;
 
   // To protect rooms and corridors during smoothing
   private bool[,] protectedCells;
@@ -104,7 +105,7 @@ public partial class PCG : TileMap {
       spawnRoom = rooms[rand.Next(rooms.Count)];
 
       // Find a valid spawn position in the selected room
-      Vector2 spawnWorldPosition = FindSpawnPositionInRoom(spawnRoom);
+      spawnWorldPosition = FindSpawnPositionInRoom(spawnRoom);
 
       // Locate the Player node in the scene tree
       var worldNode = GetNode<Node>("/root/World");
@@ -170,10 +171,13 @@ public partial class PCG : TileMap {
     }
 
     // Define the minimum distance required between the player's spawn room and enemy spawn rooms
-    float minimumDistance = 50.0f;
+    float minimumDistance = 500.0f;
 
     // Filter eligible rooms to ensure they are far away from the player's spawn room
-    eligibleRooms = eligibleRooms.FindAll(room => GetRoomDistance(room, spawnRoom) >= minimumDistance);
+    eligibleRooms = eligibleRooms.FindAll(room => (RoomPointDistance(room, spawnWorldPosition) >= minimumDistance));
+    foreach (Room room in eligibleRooms) {
+      GD.Print("Allowed Room: (" + room.X + ", " + room.Y + ") | Distance: " + RoomPointDistance(room, spawnWorldPosition));
+    }
     GD.Print(eligibleRooms.Count + " rooms possible to spawn enemies in");
 
     // Get the enemy wave descriptor
@@ -196,7 +200,7 @@ public partial class PCG : TileMap {
           var enemy = (Enemy)enemyScene.Instantiate();
           GetTree().Root.CallDeferred("add_child", enemy);
           enemy.GlobalPosition = spawnWorldPosition;
-
+          GD.Print("Spawning Enemy | Distance: " + RoomPointDistance(room, spawnWorldPosition));
           enemy.SetEnemyType(enemyType);
         } else {
           GD.PrintErr("No eligible rooms available to spawn enemies.");
@@ -204,6 +208,17 @@ public partial class PCG : TileMap {
         }
       }
     }
+  }
+
+  private float RoomPointDistance(Room room, Vector2 vec) {
+    Vector2I cellPositionA = new Vector2I(room.X, room.Y);
+    Vector2 localPositionA = MapToLocal(cellPositionA);
+    var centerWorldPositionA = this.ToGlobal(localPositionA);
+
+    // Calculate the Euclidean distance
+    float distanceX = centerWorldPositionA.X - vec.X;
+    float distanceY = centerWorldPositionA.Y - vec.Y;
+    return Mathf.Sqrt(distanceX * distanceX + distanceY * distanceY);
   }
 
   private void SpawnEnemyInRoom(Room room) {
@@ -251,9 +266,19 @@ public partial class PCG : TileMap {
       return float.MaxValue; // If either room is null, return maximum possible distance
     }
 
+    // maybe make a helper method for converting room tile positions to world positions
+
+    Vector2I cellPositionA = new Vector2I(roomA.X, roomA.Y);
+    Vector2 localPositionA = MapToLocal(cellPositionA);
+    var centerWorldPositionA = this.ToGlobal(localPositionA);
+
+    Vector2I cellPositionB = new Vector2I(roomB.X, roomB.Y);
+    Vector2 localPositionB = MapToLocal(cellPositionB);
+    var centerWorldPositionB = this.ToGlobal(localPositionB);
+
     // Calculate the Euclidean distance between the center points of the two rooms
-    float distanceX = roomA.CenterX - roomB.CenterX;
-    float distanceY = roomA.CenterY - roomB.CenterY;
+    float distanceX = centerWorldPositionA.X - centerWorldPositionB.X;
+    float distanceY = centerWorldPositionA.Y - centerWorldPositionB.Y;
     return Mathf.Sqrt(distanceX * distanceX + distanceY * distanceY);
   }
 
@@ -357,6 +382,21 @@ public partial class PCG : TileMap {
 
       if (!overlaps) {
         rooms.Add(room);
+
+        /*
+        Vector2I cellPosition = new Vector2I(room.X, room.Y);
+        Vector2 localPosition = MapToLocal(cellPosition);
+        var centerWorldPosition = this.ToGlobal(localPosition);
+        PackedScene xScene = GD.Load<PackedScene>("res://x.tscn");
+        var marker = (Node2D)xScene.Instantiate();
+        GetTree().Root.CallDeferred("add_child", marker);
+        marker.Name = "marker";
+        marker.GlobalPosition = centerWorldPosition;
+        GD.Print("spawning marker: " + centerWorldPosition.ToString());
+        if (room == spawnRoom) marker.SelfModulate = new Color(0, 1, 0);
+        ShakeAndBake.iShouldntExistList.Add(marker);
+        */
+
         CarveRoom(room);
       }
     }

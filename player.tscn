@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://bhbp0csn635tg"]
+[gd_scene load_steps=9 format=3 uid="uid://bhbp0csn635tg"]
 
 [ext_resource type="Script" path="res://Player.cs" id="1_75i17"]
 [ext_resource type="Texture2D" uid="uid://pmrn6bs4an35" path="res://player.png" id="1_nfqbe"]
@@ -13,6 +13,8 @@ bg_color = Color(1, 0, 0, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_iutem"]
 bg_color = Color(0, 1, 0, 1)
+
+[sub_resource type="Theme" id="Theme_7o220"]
 
 [node name="Player" type="CharacterBody2D"]
 scale = Vector2(1.4, 1.4)
@@ -47,3 +49,13 @@ step = 1.0
 value = 10.0
 exp_edit = true
 show_percentage = false
+
+[node name="Label" type="Label" parent="."]
+offset_left = -8.0
+offset_top = -17.3333
+offset_right = 46.0
+offset_bottom = 5.66667
+scale = Vector2(0.310688, 0.262862)
+theme = SubResource("Theme_7o220")
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "100 HP"

@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://1bqdqrlgpg4g"]
+[gd_scene load_steps=8 format=3 uid="uid://1bqdqrlgpg4g"]
 
 [ext_resource type="Script" path="res://Enemy.cs" id="1_cs6l1"]
 [ext_resource type="Texture2D" uid="uid://g3ub5ffa3brk" path="res://enemy.png" id="1_hcna3"]
@@ -12,6 +12,8 @@ bg_color = Color(1, 0, 0, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4wvje"]
 bg_color = Color(0, 1, 0, 1)
+
+[sub_resource type="Theme" id="Theme_75mjx"]
 
 [node name="Enemy" type="CharacterBody2D"]
 scale = Vector2(1.5, 1.5)
@@ -49,7 +51,20 @@ theme_override_styles/background = SubResource("StyleBoxFlat_cuoj0")
 theme_override_styles/fill = SubResource("StyleBoxFlat_4wvje")
 min_value = 1.0
 max_value = 10.0
+step = 1.0
 value = 10.0
 exp_edit = true
 rounded = true
+allow_greater = true
+allow_lesser = true
 show_percentage = false
+
+[node name="Label" type="Label" parent="."]
+offset_left = -8.0
+offset_top = -17.3333
+offset_right = 46.0
+offset_bottom = 5.66667
+scale = Vector2(0.310688, 0.262862)
+theme = SubResource("Theme_75mjx")
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "100 HP"

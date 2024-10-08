@@ -19,6 +19,7 @@ public partial class Item : RigidBody2D {
     ContactMonitor = true;
     MaxContactsReported = 5;
     BodyEntered += (Node body) => OnBodyEntered(body);
+    ShakeAndBake.iShouldntExistList.Add(this);
   }
 
   public void SetType(ItemType type) {
@@ -51,6 +52,7 @@ public partial class Item : RigidBody2D {
 
       // Destroy the item after it's collected
       QueueFree();
+      ShakeAndBake.iShouldntExistList.Remove(this);
 
       TelemetryManager.Instance.AddPickupCollected(); // telemetry
     }
