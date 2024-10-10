@@ -204,12 +204,12 @@ public partial class Player : CharacterBody2D {
   }
 
   private async void ActivateInvincibilityFrames() {
-    GD.Print("I frames activated");
+    // GD.Print("I frames activated");
     canBeHurt = false;
 
     await ToSignal(GetTree().CreateTimer(1.0f), "timeout");  // Wait for 1 second
     canBeHurt = true;
-    GD.Print("I frames ended");
+    // GD.Print("I frames ended");
   }
 
   // Activate speed boost temporarily

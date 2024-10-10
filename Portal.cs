@@ -10,6 +10,7 @@ public partial class Portal : RigidBody2D {
     ContactMonitor = true;
     MaxContactsReported = 5;
     BodyEntered += (Node body) => OnBodyEntered(body);
+    ShakeAndBake.iShouldntExistList.Add(this);
   }
 
   // Called every frame. 'delta' is the elapsed time since the previous frame.

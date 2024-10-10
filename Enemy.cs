@@ -188,11 +188,18 @@ public partial class Enemy : CharacterBody2D {
     // Check if the enemy's health is 0 or below
     if (health <= 0) {
       alive = false;
+
       DropDead();
       DropItem();
       ShakeAndBake.Instance.HandleKill(this);
       ShakeAndBake.iShouldntExistList.Remove(this);
       QueueFree();
+
+      // write telemetry if its the boss dying
+      if (this.enemyType == EnemyType.Boss) {
+        TelemetryManager.Instance.Write();
+        TelemetryManager.Instance.Restart();
+      }
     }
   }
 

@@ -52,6 +52,8 @@ public partial class PCG : TileMap {
   public EnemyWaveDescriptor enemyWaveDescriptor;
   private ItemWaveDescriptor itemWaveDescriptor;
 
+  private Vector2I spawnCellPos;
+
   private List<(BiomeType biome, float minTemp, float maxTemp)> biomeTemperatureRanges;
 
   public override void _Ready() {
@@ -105,7 +107,7 @@ public partial class PCG : TileMap {
       spawnRoom = rooms[rand.Next(rooms.Count)];
 
       // Find a valid spawn position in the selected room
-      spawnWorldPosition = FindSpawnPositionInRoom(spawnRoom);
+      spawnWorldPosition = FindSpawnPositionInRoom(spawnRoom, 100, true);
 
       // Locate the Player node in the scene tree
       var worldNode = GetNode<Node>("/root/World");
@@ -165,20 +167,10 @@ public partial class PCG : TileMap {
   }
 
   public void SpawnEnemyWave() {
-    List<Room> eligibleRooms = new List<Room>(rooms);
-    if (spawnRoom != null) {
-      eligibleRooms.Remove(spawnRoom); // Remove the spawn room to avoid immediate ambushes
-    }
-
-    // Define the minimum distance required between the player's spawn room and enemy spawn rooms
-    float minimumDistance = 500.0f;
-
-    // Filter eligible rooms to ensure they are far away from the player's spawn room
-    eligibleRooms = eligibleRooms.FindAll(room => (RoomPointDistance(room, spawnWorldPosition) >= minimumDistance));
-    foreach (Room room in eligibleRooms) {
-      GD.Print("Allowed Room: (" + room.X + ", " + room.Y + ") | Distance: " + RoomPointDistance(room, spawnWorldPosition));
-    }
-    GD.Print(eligibleRooms.Count + " rooms possible to spawn enemies in");
+    // Define the minimum tile distance (Manhattan distance) required between the player's position and the enemy spawn positions
+    Vector2I playerGridPos = spawnCellPos;
+    GD.Print("\nPlayer grid position: " + playerGridPos);
+    int minimumTileDistance = 100; // Minimum Manhattan distance in tile units
 
     // Get the enemy wave descriptor
     var enemyCounts = enemyWaveDescriptor.EnemyCounts;
@@ -189,26 +181,57 @@ public partial class PCG : TileMap {
       int count = entry.Value;
 
       for (int i = 0; i < count; i++) {
-        if (eligibleRooms.Count > 0) {
-          // Select a random room from the eligible rooms
-          Room room = eligibleRooms[rand.Next(eligibleRooms.Count)];
+        Vector2 spawnWorldPosition = FindRandomValidSpawnPosition(minimumTileDistance, playerGridPos);
 
-          // Find a valid spawn position in the selected room
-          Vector2 spawnWorldPosition = FindSpawnPositionInRoom(room);
+        if (spawnWorldPosition == Vector2.Zero) {
+          GD.PrintErr("No valid spawn position found for enemy.");
+          return;
+        }
 
-          // Spawn enemy and set position
-          var enemy = (Enemy)enemyScene.Instantiate();
-          GetTree().Root.CallDeferred("add_child", enemy);
-          enemy.GlobalPosition = spawnWorldPosition;
-          GD.Print("Spawning Enemy | Distance: " + RoomPointDistance(room, spawnWorldPosition));
-          enemy.SetEnemyType(enemyType);
-        } else {
-          GD.PrintErr("No eligible rooms available to spawn enemies.");
+        // Spawn enemy and set position
+        var enemy = (Enemy)enemyScene.Instantiate();
+        GetTree().Root.CallDeferred("add_child", enemy);
+        enemy.GlobalPosition = spawnWorldPosition;
+        GD.Print($"Spawning Enemy of type {enemyType} at {spawnWorldPosition}");
+        enemy.SetEnemyType(enemyType);
+      }
+    }
+  }
+
+  private Vector2 FindRandomValidSpawnPosition(int minimumTileDistance, Vector2I playerGridPos, int maxAttempts = 1000) {
+    Vector2 spawnWorldPosition = Vector2.Zero;
+    bool positionFound = false;
+
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      // Pick random coordinates within the map bounds
+      int spawnX = rand.Next(0, chunkWidth);
+      int spawnY = rand.Next(0, chunkHeight);
+
+      // Check if the tile is a floor tile and not adjacent to a wall
+      if (mapGrid[spawnX, spawnY] == 1 && !IsNextToWall(spawnX, spawnY)) {
+        // Calculate the Manhattan distance between the player's grid position and the spawn position
+        int manhattanDistance = Mathf.Abs(playerGridPos.X - spawnX) + Mathf.Abs(playerGridPos.Y - spawnY);
+
+        if (manhattanDistance >= minimumTileDistance) {
+          // Convert tile coordinates to local coordinates, then to world coordinates
+          Vector2I cellPosition = new Vector2I(spawnX, spawnY);
+          Vector2 localPosition = MapToLocal(cellPosition);
+          spawnWorldPosition = this.ToGlobal(localPosition);
+
+          positionFound = true;
           break;
         }
       }
     }
+
+    if (!positionFound) {
+      // Fallback to (0,0) if no valid position was found after max attempts
+      return Vector2.Zero;
+    }
+
+    return spawnWorldPosition;
   }
+
 
   private float RoomPointDistance(Room room, Vector2 vec) {
     Vector2I cellPositionA = new Vector2I(room.X, room.Y);
@@ -227,7 +250,7 @@ public partial class PCG : TileMap {
     enemy.GlobalPosition = MapToLocal(new Vector2I(room.CenterX, room.CenterY));
   }
 
-  private Vector2 FindSpawnPositionInRoom(Room room, int maxAttempts = 100) {
+  private Vector2 FindSpawnPositionInRoom(Room room, int maxAttempts = 100, bool cache = false) {
     Vector2 spawnWorldPosition = Vector2.Zero;
     bool positionFound = false;
 
@@ -241,6 +264,7 @@ public partial class PCG : TileMap {
         // Convert tile coordinates to local coordinates
         Vector2I cellPosition = new Vector2I(spawnX, spawnY);
         Vector2 localPosition = MapToLocal(cellPosition);
+        if (cache) spawnCellPos = cellPosition;
 
         // Convert local coordinates to global coordinates
         spawnWorldPosition = this.ToGlobal(localPosition);
