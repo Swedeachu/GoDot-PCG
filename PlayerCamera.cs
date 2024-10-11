@@ -18,6 +18,7 @@ public partial class PlayerCamera : Camera2D {
     var parent = this.GetParent();
     followShape = (Node2D)parent.GetNode("CollisionShape2D");
     Position = followShape.Position;
+    Zoom = new Vector2(1.55f, 1.55f);
   }
 
   public override void _Process(double delta) {
@@ -29,11 +30,13 @@ public partial class PlayerCamera : Camera2D {
     // Zoom in (make the zoom value smaller)
     if (Input.IsActionJustPressed("ui_zoom_in")) {
       Zoom += new Vector2(zoomSpeed, zoomSpeed);
+      GD.Print(Zoom.ToString());
     }
 
     // Zoom out (make the zoom value larger)
     if (Input.IsActionJustPressed("ui_zoom_out")) {
       Zoom -= new Vector2(zoomSpeed, zoomSpeed);
+      GD.Print(Zoom.ToString());
     }
 
     // Clamp zoom levels to avoid zooming too far in or out
